@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+
+// Context
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Components
 import Header from "./components/Header";
@@ -28,18 +31,10 @@ import Withdraw from "./pages/Portfolio/Withdraw";
 function AppContent() {
   const location = useLocation();
 
-  // Scroll to top on route change ✅
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
-  // Hide header/footer on auth routes
-  const hideHeaderFooter = [
-    "/login",
-    "/register",
-    "/verify",
-    "/forgot-password",
-  ].includes(location.pathname);
+  // Hide header/footer on auth pages
+  const hideHeaderFooter = ["/login", "/register", "/verify", "/forgot-password"].includes(
+    location.pathname
+  );
 
   return (
     <>
@@ -59,31 +54,69 @@ function AppContent() {
             transition={{ duration: 0.35, ease: "easeInOut" }}
           >
             <Routes location={location} key={location.pathname}>
-              {/* General */}
+              {/* Public Routes */}
               <Route path="/" element={<Splash />} />
-              <Route path="/settings" element={<Settings />} />
-
-              {/* Auth */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify" element={<Verify />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
-              {/* Marketplace */}
-              <Route path="/marketplace" element={<ProductList />} />
-              <Route path="/marketplace/:id" element={<ProductDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
+              {/* Protected Routes */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/portfolio"
+                element={
+                  <ProtectedRoute>
+                    <Portfolio />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/withdraw"
+                element={
+                  <ProtectedRoute>
+                    <Withdraw />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/marketplace"
+                element={
+                  <ProtectedRoute>
+                    <ProductList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/marketplace/:id"
+                element={
+                  <ProtectedRoute>
+                    <ProductDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
 
-              {/* Portfolio */}
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/withdraw" element={<Withdraw />} />
-
-              {/* Fallback */}
+              {/* Fallback for invalid routes */}
               <Route
                 path="*"
                 element={
-                  <h1 className="text-center mt-20 text-xl font-semibold text-gray-700">
-                    404 - Page Not Found
+                  <h1 className="text-center mt-20 text-xl text-gray-700">
+                    404 – Page Not Found
                   </h1>
                 }
               />
@@ -99,8 +132,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

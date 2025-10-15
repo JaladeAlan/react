@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Header() {
   const { pathname } = useLocation();
+  const { user, logout } = useAuth();
 
   const links = [
     { name: "Marketplace", path: "/marketplace" },
@@ -18,7 +20,7 @@ export default function Header() {
         </Link>
 
         {/* Nav Links */}
-        <nav className="flex gap-6">
+        <nav className="flex gap-6 items-center">
           {links.map((link) => (
             <Link
               key={link.path}
@@ -33,13 +35,27 @@ export default function Header() {
             </Link>
           ))}
 
-          {/* Logout */}
-          <Link
-            to="/login"
-            className="text-red-500 hover:text-red-600 font-medium transition"
-          >
-            Logout
-          </Link>
+          {/* Auth section */}
+          {user ? (
+            <>
+              <span className="text-gray-700 font-medium">
+                Hi, {user.name || "User"}
+              </span>
+              <button
+                onClick={logout}
+                className="text-red-500 hover:text-red-600 font-medium transition"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="text-blue-600 hover:text-blue-700 font-medium transition"
+            >
+              Login
+            </Link>
+          )}
         </nav>
       </div>
     </header>

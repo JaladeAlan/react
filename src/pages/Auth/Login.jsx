@@ -1,31 +1,40 @@
-import { Link } from "react-router-dom";
+// src/pages/Auth/Login.jsx
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../../utils/api";
 
 export default function Login() {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const res = await api.post("/login", form);
+      localStorage.setItem("token", res.data.token);
+      navigate("/marketplace");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    }
+  };
+
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-blue-600">Login</h2>
-
-        <form className="space-y-4">
-          <input type="email" placeholder="Email" className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-          <input type="password" placeholder="Password" className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-            Sign In
-          </button>
-        </form>
-
-        <div className="text-center text-sm text-gray-500 mt-4">
-          <Link to="/forgot-password" className="text-blue-600 hover:underline">Forgot Password?</Link>
-        </div>
-
-        <p className="text-center text-sm mt-6">
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+      <form onSubmit={handleSubmit} className="bg-white p-8 shadow-md rounded-md w-96">
+        <h2 className="text-2xl font-semibold mb-4 text-center">Login</h2>
+        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+        <input name="email" onChange={handleChange} value={form.email} placeholder="Email" type="email" className="border w-full mb-3 px-3 py-2 rounded" />
+        <input name="password" onChange={handleChange} value={form.password} placeholder="Password" type="password" className="border w-full mb-4 px-3 py-2 rounded" />
+        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+        <p className="text-center text-sm mt-3">
           Don’t have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Register
-          </Link>
+          <Link to="/register" className="text-blue-600">Register</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
