@@ -1,4 +1,3 @@
-// src/components/ProtectedRoute.jsx
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import api from "../utils/api";
@@ -11,15 +10,24 @@ export default function ProtectedRoute({ children }) {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token");
-        await api.get("/me");
+        if (!token) throw new Error("No token found in localStorage");
+
+        // ✅ Explicitly verify token is being attached
+        console.log("Token in ProtectedRoute:", token);
+
+        // This uses your Axios instance, which should attach the Bearer header automatically.
+        const res = await api.get("/me");
+        console.log("Auth check success:", res.data);
+
         setAuthenticated(true);
-      } catch {
+      } catch (err) {
+        console.error("Auth check failed:", err.response?.data || err.message);
         setAuthenticated(false);
       } finally {
         setLoading(false);
       }
     };
+
     checkAuth();
   }, []);
 
