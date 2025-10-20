@@ -1,13 +1,13 @@
 // src/pages/Auth/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; // ✅ import from context
+import { useAuth } from "../../context/AuthContext"; 
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth(); // ✅ use login from context
+  const { login } = useAuth(); 
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -16,8 +16,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     try {
-      await login(form.email, form.password); // ✅ use AuthContext login
-      navigate("/marketplace");
+      await login(form.email, form.password); 
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials");
     }
@@ -47,12 +46,22 @@ export default function Login() {
           type="password"
           className="border w-full mb-4 px-3 py-2 rounded"
         />
+        <p className="text-right text-sm mb-4">
+          <Link
+            to="/forgot-password"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 bg-clip-text text-transparent hover:from-indigo-600 hover:to-blue-500 transition-all"
+          >
+            Forgot Password?
+          </Link>
+        </p>
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
           Login
         </button>
+
         <p className="text-center text-sm mt-3">
           Don’t have an account?{" "}
           <Link to="/register" className="text-blue-600">

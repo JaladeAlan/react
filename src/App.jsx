@@ -1,40 +1,43 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
-// Context
+// Context & Routing
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 
-// Components
+// Layout
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
-// General
+// Pages
 import Splash from "./pages/Splash";
 import Settings from "./pages/Settings/Settings";
-
-// Auth
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
-import Verify from "./pages/Auth/Verify";
+import VerifyEmail from "./pages/Auth/VerifyEmail";
+import EmailVerified from "./pages/Auth/EmailVerified";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
-
-// Marketplace
+import ResetVerify from "./pages/Auth/ResetVerify";
+import SetNewPassword from "./pages/Auth/SetNewPassword";
 import ProductList from "./pages/Marketplace/ProductList";
 import ProductDetail from "./pages/Marketplace/ProductDetail";
 import Checkout from "./pages/Marketplace/Checkout";
-
-// Portfolio
 import Portfolio from "./pages/Portfolio/Portfolio";
 import Withdraw from "./pages/Portfolio/Withdraw";
 
-function AppContent() {
+function AnimatedRoutes() {
   const location = useLocation();
 
   // Hide header/footer on auth pages
-  const hideHeaderFooter = ["/login", "/register", "/verify", "/forgot-password"].includes(
-    location.pathname
-  );
+  const hideHeaderFooter = [
+    "/login",
+    "/register",
+    "/verify-email",
+    "/forgot-password",
+    "/reset-verify",
+    "/set-new-password",
+  ].includes(location.pathname);
 
   return (
     <>
@@ -58,8 +61,11 @@ function AppContent() {
               <Route path="/" element={<Splash />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/verify" element={<Verify />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/email-verified" element={<EmailVerified />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-verify" element={<ResetVerify />} />
+              <Route path="/set-new-password" element={<SetNewPassword />} />
 
               {/* Protected Routes */}
               <Route
@@ -111,7 +117,7 @@ function AppContent() {
                 }
               />
 
-              {/* Fallback for invalid routes */}
+              {/* Fallback */}
               <Route
                 path="*"
                 element={
@@ -132,10 +138,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <ScrollToTop />
+        <AnimatedRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

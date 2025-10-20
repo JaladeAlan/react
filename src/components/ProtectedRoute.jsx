@@ -10,18 +10,26 @@ export default function ProtectedRoute({ children }) {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token found in localStorage");
+        if (!token) throw new Error("No token found");
 
-        // ✅ Explicitly verify token is being attached
-        console.log("Token in ProtectedRoute:", token);
+        // ✅ Log only in dev mode
+        if (import.meta.env.MODE === "development") {
+          console.log("ProtectedRoute: token found");
+        }
 
-        // This uses your Axios instance, which should attach the Bearer header automatically.
-        const res = await api.get("/me");
-        console.log("Auth check success:", res.data);
-
-        setAuthenticated(true);
+        const res = await api.get("/me"); // assumes backend checks token
+        if (res.data?.success) {
+          setAuthenticated(true);
+        } else {
+          throw new Error("Auth check failed");
+        }
       } catch (err) {
-        console.error("Auth check failed:", err.response?.data || err.message);
+        if (import.meta.env.MODE === "development") {
+          console.error("Auth check failed:", err.response?.data || err.message);
+        }
+
+        // Optional: clear bad token if it's expired or invalid
+        localStorage.removeItem("token");
         setAuthenticated(false);
       } finally {
         setLoading(false);
