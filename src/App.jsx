@@ -12,6 +12,7 @@ import Footer from "./components/Footer";
 
 // Pages
 import Splash from "./pages/Splash";
+import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings/Settings";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
@@ -21,7 +22,7 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ResetVerify from "./pages/Auth/ResetVerify";
 import SetNewPassword from "./pages/Auth/SetNewPassword";
 import ProductList from "./pages/Marketplace/ProductList";
-import ProductDetail from "./pages/Marketplace/ProductDetail";
+import LandDetails from "./pages/Lands/LandDetails";
 import Checkout from "./pages/Marketplace/Checkout";
 import Portfolio from "./pages/Portfolio/Portfolio";
 import Withdraw from "./pages/Portfolio/Withdraw";
@@ -69,6 +70,14 @@ function AnimatedRoutes() {
 
               {/* Protected Routes */}
               <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/settings"
                 element={
                   <ProtectedRoute>
@@ -101,13 +110,14 @@ function AnimatedRoutes() {
                 }
               />
               <Route
-                path="/marketplace/:id"
+                path="/lands/:id"
                 element={
                   <ProtectedRoute>
-                    <ProductDetail />
+                    <LandDetails />
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/checkout"
                 element={

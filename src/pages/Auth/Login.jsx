@@ -23,7 +23,7 @@ export default function Login() {
 
     try {
       await login(form.email, form.password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       handleApiError(err, setError, setFieldErrors);
     }

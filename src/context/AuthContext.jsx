@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       await checkAuth();
 
       // Redirect to portfolio
-      navigate("/portfolio");
+      navigate("/");
 
     } catch (err) {
       console.error("Login error:", err.response?.data || err.message);
