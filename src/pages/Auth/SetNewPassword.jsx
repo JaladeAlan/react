@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
+import FormError from "../../components/FormError";
+import handleApiError from "../../utils/handleApiError";
 
 export default function SetNewPassword() {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [form, setForm] = useState({
+    password: "",
+    password_confirmation: "",
+  });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,22 +17,30 @@ export default function SetNewPassword() {
   const email = localStorage.getItem("reset_email");
   const otpVerified = localStorage.getItem("otp_verified");
 
+  // Redirect if no email or OTP not verified
   useEffect(() => {
     if (!email || otpVerified !== "true") {
       navigate("/forgot-password");
     }
   }, [email, otpVerified, navigate]);
 
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
 
-    if (password !== confirm) return setError("Passwords do not match.");
+    if (form.password !== form.password_confirmation) {
+      return setError("Passwords do not match.");
+    }
 
     try {
       setLoading(true);
-      await api.post("/password/reset", { email, password, password_confirmation: confirm });
+
+      await api.post("/password/reset", { email, ...form });
+
       setMessage("Password reset successful! Redirecting to login...");
 
       localStorage.removeItem("reset_email");
@@ -36,7 +48,7 @@ export default function SetNewPassword() {
 
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong.");
+      handleApiError(err, setError);
     } finally {
       setLoading(false);
     }
@@ -46,31 +58,39 @@ export default function SetNewPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md text-center">
         <h2 className="text-2xl font-semibold mb-3">Set New Password</h2>
-        <p className="text-gray-600 mb-4">Enter and confirm your new password below.</p>
+        <p className="text-gray-600 mb-4">
+          Enter and confirm your new password below.
+        </p>
 
-        {error && <p className="text-red-500 mb-2 text-sm">{error}</p>}
+        <FormError error={error} />
         {message && <p className="text-green-600 mb-2 text-sm">{message}</p>}
 
         <form onSubmit={handleSubmit}>
           <input
+            name="password"
             type="password"
             placeholder="New password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={form.password}
+            onChange={handleChange}
             className="border w-full mb-3 px-3 py-2 rounded"
+            required
           />
           <input
+            name="password_confirmation"
             type="password"
             placeholder="Confirm password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            value={form.password_confirmation}
+            onChange={handleChange}
             className="border w-full mb-4 px-3 py-2 rounded"
+            required
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
+            className={`w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
             {loading ? "Saving..." : "Save New Password"}
           </button>

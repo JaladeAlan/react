@@ -12,12 +12,12 @@ export default function ProtectedRoute({ children }) {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No token found");
 
-        // ✅ Log only in dev mode
+        //  Log only in dev mode
         if (import.meta.env.MODE === "development") {
           console.log("ProtectedRoute: token found");
         }
 
-        const res = await api.get("/me"); // assumes backend checks token
+        const res = await api.get("/me"); 
         if (res.data?.success) {
           setAuthenticated(true);
         } else {
@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children }) {
           console.error("Auth check failed:", err.response?.data || err.message);
         }
 
-        // Optional: clear bad token if it's expired or invalid
+        // clear bad token if it's expired or invalid
         localStorage.removeItem("token");
         setAuthenticated(false);
       } finally {
@@ -42,7 +42,7 @@ export default function ProtectedRoute({ children }) {
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen text-gray-500">
-        Checking authentication...
+        Loading...
       </div>
     );
 

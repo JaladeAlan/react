@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../utils/api";
+import handleApiError from "../../utils/handleApiError";
+import FormError from "../../components/FormError";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -13,21 +16,21 @@ export default function ForgotPassword() {
     e.preventDefault();
     setError("");
     setMessage("");
+    setFieldErrors({});
     setLoading(true);
 
     try {
       const res = await api.post("/password/reset/code", { email });
 
-      // success message
       setMessage(res.data.message || "A reset code has been sent to your email.");
 
-      // store email in localStorage so ResetVerify can retrieve it even after refresh
+      // Save email for next step
       localStorage.setItem("reset_email", email);
 
-      // navigate to OTP verify screen with state
+      // Navigate to OTP verification
       navigate("/reset-verify", { state: { email } });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send reset code.");
+      handleApiError(err, setError, setFieldErrors);
     } finally {
       setLoading(false);
     }
@@ -41,18 +44,23 @@ export default function ForgotPassword() {
       >
         <h2 className="text-2xl font-semibold mb-4 text-center">Forgot Password</h2>
 
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-        {message && <p className="text-green-600 text-sm mb-3">{message}</p>}
+        {error && <p className="text-red-500 text-sm mb-3 text-center">{error}</p>}
+        {message && <p className="text-green-600 text-sm mb-3 text-center">{message}</p>}
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter your email"
-          className="border w-full mb-4 px-3 py-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="mb-4">
+          <input
+            type="email"
+            name="email"
+            placeholder="Enter your email"
+            className={`border w-full px-3 py-2 rounded ${
+              fieldErrors.email ? "border-red-500" : ""
+            }`}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <FormError error={fieldErrors.email} />
+        </div>
 
         <button
           type="submit"

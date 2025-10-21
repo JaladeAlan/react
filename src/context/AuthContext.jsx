@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    // ✅ Attach token to headers
+    //  Attach token to headers
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     try {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post("/login", { email, password });
       console.log("Full login response:", res);
 
-      // ✅ Extract token flexibly
+      //  Extract token flexibly
       const token =
         res?.data?.token ||
         res?.data?.data?.token ||
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     delete api.defaults.headers.common["Authorization"];
     setUser(null);
-    navigate("/login");
+    navigate("/");
   };
 
   return (
