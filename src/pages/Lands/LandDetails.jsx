@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../utils/api";
+import {
+  purchaseLand,
+  sellLand,
+  getUserUnitsForLand,
+} from "../../services/landService";
 
 export default function LandDetails() {
   const { id } = useParams();
   const [land, setLand] = useState(null);
+  const [userUnits, setUserUnits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [modalType, setModalType] = useState(null); // 'purchase' or 'sell'
+  const [unitsInput, setUnitsInput] = useState("");
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
     const fetchLand = async () => {
@@ -22,8 +31,41 @@ export default function LandDetails() {
         setLoading(false);
       }
     };
+
+    const fetchUserUnits = async () => {
+      try {
+        const res = await getUserUnitsForLand(id);
+        if (res.units_owned !== undefined) setUserUnits(res.units_owned);
+      } catch (err) {
+        console.error("Error fetching user units:", err);
+      }
+    };
+
     fetchLand();
+    fetchUserUnits();
   }, [id]);
+
+  const handleAction = async () => {
+    if (!unitsInput || isNaN(unitsInput) || unitsInput <= 0) {
+      alert("Please enter a valid number of units.");
+      return;
+    }
+
+    try {
+      if (modalType === "purchase") {
+        const res = await purchaseLand(id, unitsInput);
+        alert(`✅ Purchase successful!\nReference: ${res.reference}`);
+      } else if (modalType === "sell") {
+        const res = await sellLand(id, unitsInput);
+        alert(`✅ Sold successfully!\nReference: ${res.reference}`);
+      }
+      setModalType(null);
+      setUnitsInput("");
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || "Transaction failed. Please try again.");
+    }
+  };
 
   if (loading)
     return (
@@ -99,22 +141,73 @@ export default function LandDetails() {
               <span className="font-medium">Total Units:</span>{" "}
               {land.total_units}
             </p>
+            <p>
+              <span className="font-medium">Your Units:</span>{" "}
+              {userUnits ?? 0}
+            </p>
           </div>
 
           <p className="text-gray-700 leading-relaxed">
             {land.description || "No description available."}
           </p>
 
-          <div className="mt-6">
+          <div className="mt-6 flex gap-3">
             <button
-              onClick={() => alert("Purchase feature coming soon")}
+              onClick={() => setModalType("purchase")}
               className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
             >
               Purchase Units
             </button>
+
+            {userUnits > 0 && (
+              <button
+                onClick={() => setModalType("sell")}
+                className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+              >
+                Sell Units
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Modal for Purchase/Sell */}
+      {modalType && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-96">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800 capitalize">
+              {modalType} Units
+            </h2>
+
+            <input
+              type="number"
+              value={unitsInput}
+              onChange={(e) => setUnitsInput(e.target.value)}
+              placeholder="Enter number of units"
+              className="w-full border rounded-lg px-3 py-2 mb-4 focus:ring focus:ring-blue-300"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setModalType(null)}
+                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAction}
+                className={`px-4 py-2 rounded-lg text-white ${
+                  modalType === "purchase"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-yellow-500 hover:bg-yellow-600"
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
