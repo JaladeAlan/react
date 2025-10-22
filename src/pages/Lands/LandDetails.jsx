@@ -7,6 +7,12 @@ import {
   getUserUnitsForLand,
 } from "../../services/landService";
 
+// Import Lightbox & plugins
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import "yet-another-react-lightbox/plugins/thumbnails.css";
+
 export default function LandDetails() {
   const { id } = useParams();
   const [land, setLand] = useState(null);
@@ -15,6 +21,10 @@ export default function LandDetails() {
   const [error, setError] = useState("");
   const [modalType, setModalType] = useState(null); // 'purchase' or 'sell'
   const [unitsInput, setUnitsInput] = useState("");
+
+  // Lightbox state
+  const [open, setOpen] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
 
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
@@ -88,6 +98,12 @@ export default function LandDetails() {
       </div>
     );
 
+  // Prepare Lightbox images array
+  const images =
+    land.images?.map((img) => ({
+      src: `${BASE_URL}/storage/${img.image_path}`,
+    })) || [];
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <Link
@@ -98,15 +114,19 @@ export default function LandDetails() {
       </Link>
 
       <div className="bg-white shadow rounded-xl overflow-hidden">
-        {/* Image section */}
-        {land.images && land.images.length > 0 ? (
+        {/* 🖼️ Image section with click to view */}
+        {images.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            {land.images.map((img, i) => (
+            {images.map((img, i) => (
               <img
                 key={i}
-                src={`${BASE_URL}/storage/${img.image_path}`}
+                src={img.src}
                 alt={`${land.title} ${i + 1}`}
-                className="w-full h-64 object-cover rounded-lg"
+                onClick={() => {
+                  setPhotoIndex(i);
+                  setOpen(true);
+                }}
+                className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
               />
             ))}
           </div>
@@ -170,6 +190,17 @@ export default function LandDetails() {
           </div>
         </div>
       </div>
+
+      {/* Lightbox Viewer */}
+      {open && (
+        <Lightbox
+          open={open}
+          close={() => setOpen(false)}
+          index={photoIndex}
+          slides={images}
+          plugins={images.length > 1 ? [Thumbnails] : []} // 🧠 no scrolling if only 1 image
+        />
+      )}
 
       {/* Modal for Purchase/Sell */}
       {modalType && (
