@@ -1,107 +1,172 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 
 export default function Dashboard() {
-  const [lands, setLands] = useState([]);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
-    const fetchLands = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/lands");
-        setLands(res.data);
+        // Fetch user stats
+        const statsRes = await api.get("/user/stats");
+        setStats(statsRes.data.data);
+
+        // Fetch user transactions
+        const txRes = await api.get("/transactions/user");
+        setTransactions(txRes.data.data || []);
       } catch (err) {
-        console.error("Error fetching lands:", err);
-        setError("Failed to load lands. Please try again.");
+        console.error("Dashboard fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchLands();
+    fetchData();
   }, []);
 
-  if (loading) {
+  if (!user || loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500">Loading lands...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">{error}</p>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <p className="text-gray-500 text-lg">Loading dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-8">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        Available Lands
-      </h2>
+    <div className="min-h-screen bg-gray-50">
+  
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-6 py-10 space-y-10">
+        <h2 className="text-2xl font-bold text-gray-800">
+          Welcome back, {user.name || "User"} 👋
+        </h2>
 
-      {lands.length === 0 ? (
-        <p className="text-gray-500">No lands available yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {lands.map((land) => {
-            const imageUrl =
-              land.images?.length > 0
-                ? `${BASE_URL}/storage/${land.images[0].image_path}`
-                : "/no-image.jpeg"; // fallback placeholder
+        {/* Stats Section */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-sm text-gray-500">Total Balance</h3>
+              <p className="text-2xl font-bold mt-2">
+                ₦{Number(stats.balance).toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-sm text-gray-500">Total Invested</h3>
+              <p className="text-2xl font-bold mt-2">
+                ₦{Number(stats.total_invested).toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-sm text-gray-500">Lands Owned</h3>
+              <p className="text-2xl font-bold mt-2">{stats.lands_owned}</p>
+            </div>
+          </div>
+        )}
 
-            return (
-              <div
-                key={land.id}
-                className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden flex flex-col"
-              >
-                <img
-                  src={imageUrl}
-                  alt={land.title}
-                  className="w-full h-48 object-cover"
-                  onError={(e) => (e.target.src = "/no-image.jpg")}
-                />
+        {/* Profile + Marketplace + Activity */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Profile Info */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              Profile Info
+            </h3>
+            <p className="text-gray-600 text-sm">Name: {user.name}</p>
+            <p className="text-gray-600 text-sm">Email: {user.email}</p>
+          </div>
 
-                <div className="p-4 flex flex-col flex-grow">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                    {land.title}
-                  </h3>
-                  <p className="text-gray-500 text-sm mb-2">{land.location}</p>
+          {/* Marketplace Shortcut */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">Lands</h3>
+            <p className="text-gray-600 text-sm mb-3">
+              Browse available lands and investments.
+            </p>
+            <Link
+              to="/lands"
+              className="inline-block text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              Go to Lands →
+            </Link>
+          </div>
 
-                  <div className="text-sm text-gray-700 mb-3 flex flex-col gap-1">
-                    <p>
-                      <span className="font-medium">Size:</span> {land.size} sq ft
-                    </p>
-                    <p>
-                      <span className="font-medium">Price:</span> ₦
-                      {Number(land.price_per_unit).toLocaleString()}
-                    </p>
-                    <p>
-                      <span className="font-medium">Available Units:</span>{" "}
-                      {land.available_units}
-                    </p>
-                  </div>
-
-                  <div className="mt-auto">
-                    <Link
-                      to={`/lands/${land.id}`}
-                      className="block text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                    >
-                      View
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {/* Activity Summary */}
+          <div className="bg-white shadow-md rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              Your Activity
+            </h3>
+            {stats ? (
+              <>
+                <p className="text-gray-600 text-sm mb-1">
+                  Units Owned: {stats.units_owned}
+                </p>
+                <p className="text-gray-600 text-sm mb-1">
+                  Pending Withdrawals: {stats.pending_withdrawals}
+                </p>
+                <p className="text-gray-600 text-sm">
+                  Total Withdrawn: ₦
+                  {Number(stats.total_withdrawn).toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <p className="text-gray-400 text-sm">Loading...</p>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Recent Transactions */}
+        <div className="bg-white shadow p-6 rounded-lg">
+          <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
+          {transactions.length === 0 ? (
+            <p className="text-gray-500 text-sm">No transactions found.</p>
+          ) : (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-left">
+                  <th className="p-2">Type</th>
+                  <th className="p-2">Amount</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.slice(0, 5).map((tx, i) => (
+                  <tr
+                    key={i}
+                    className="border-b hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="p-2">{tx.type}</td>
+                    <td className="p-2">₦{Number(tx.amount).toLocaleString()}</td>
+                    <td
+                      className={`p-2 ${
+                        tx.status === "Completed"
+                          ? "text-green-600"
+                          : tx.status === "Pending"
+                          ? "text-yellow-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {tx.status}
+                    </td>
+                    <td className="p-2 text-gray-500">
+                     {new Date(tx.date).toLocaleString("en-NG", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
