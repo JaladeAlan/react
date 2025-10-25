@@ -8,6 +8,7 @@ export default function Header() {
 
   const links = [
     { name: "Home", path: "/dashboard" },
+    { name: "Lands", path: "/lands" },
     { name: "Marketplace", path: "/marketplace" },
     { name: "Portfolio", path: "/portfolio" },
     { name: "Settings", path: "/settings" },

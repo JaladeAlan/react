@@ -26,6 +26,7 @@ import LandDetails from "./pages/Lands/LandDetails";
 import Checkout from "./pages/Marketplace/Checkout";
 import Portfolio from "./pages/Portfolio/Portfolio";
 import Withdraw from "./pages/Portfolio/Withdraw";
+import Lands from "./pages/Lands/LandList";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -74,6 +75,14 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />   
+              <Route
+                path="/lands"
+                element={
+                  <ProtectedRoute>
+                    <Lands />
                   </ProtectedRoute>
                 }
               />
