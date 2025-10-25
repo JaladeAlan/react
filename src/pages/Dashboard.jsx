@@ -120,16 +120,18 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="bg-white shadow p-6 rounded-lg">
           <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
+
           {transactions.length === 0 ? (
             <p className="text-gray-500 text-sm">No transactions found.</p>
           ) : (
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-100 text-left">
-                  <th className="p-2">Type</th>
-                  <th className="p-2">Amount</th>
-                  <th className="p-2">Status</th>
-                  <th className="p-2">Date</th>
+                <tr className="bg-gray-100 text-left text-gray-700">
+                  <th className="p-3 font-medium">Type</th>
+                  <th className="p-3 font-medium">Land</th>
+                  <th className="p-3 font-medium">Amount</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -138,27 +140,33 @@ export default function Dashboard() {
                     key={i}
                     className="border-b hover:bg-gray-50 transition-colors"
                   >
-                    <td className="p-2">{tx.type}</td>
-                    <td className="p-2">₦{Number(tx.amount).toLocaleString()}</td>
-                    <td
-                      className={`p-2 ${
-                        tx.status === "Completed"
-                          ? "text-green-600"
-                          : tx.status === "Pending"
-                          ? "text-yellow-600"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      {tx.status}
+                    <td className="p-3 text-gray-800 font-medium">{tx.type}</td>
+                    <td className="p-3 text-gray-600">{tx.land || "N/A"}</td>
+                    <td className="p-3 text-gray-800">
+                      ₦{Number(tx.amount).toLocaleString()}
                     </td>
-                    <td className="p-2 text-gray-500">
-                     {new Date(tx.date).toLocaleString("en-NG", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold
+                          ${
+                            tx.status.toLowerCase() === "success"
+                              ? "bg-green-100 text-green-700"
+                              : tx.status.toLowerCase() === "pending"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                      >
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-500">
+                      {new Date(tx.date).toLocaleString("en-NG", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </td>
                   </tr>
                 ))}
@@ -166,6 +174,7 @@ export default function Dashboard() {
             </table>
           )}
         </div>
+
       </main>
     </div>
   );
