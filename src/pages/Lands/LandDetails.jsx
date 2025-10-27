@@ -7,7 +7,7 @@ import {
   getUserUnitsForLand,
 } from "../../services/landService";
 
-// Import Lightbox & plugins
+// Lightbox imports
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -19,8 +19,10 @@ export default function LandDetails() {
   const [userUnits, setUserUnits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [modalType, setModalType] = useState(null); // 'purchase' or 'sell'
+  const [modalError, setModalError] = useState(""); // ❗ Error inside modal
+  const [modalType, setModalType] = useState(null);
   const [unitsInput, setUnitsInput] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
   // Lightbox state
   const [open, setOpen] = useState(false);
@@ -29,6 +31,7 @@ export default function LandDetails() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
+  // ✅ Fetch land + user units
   useEffect(() => {
     const fetchLand = async () => {
       try {
@@ -55,28 +58,40 @@ export default function LandDetails() {
     fetchUserUnits();
   }, [id]);
 
+  // ✅ Handle purchase/sell
   const handleAction = async () => {
-    if (!unitsInput || isNaN(unitsInput) || unitsInput <= 0) {
-      alert("Please enter a valid number of units.");
+    const units = Number(unitsInput);
+    if (!units || isNaN(units) || units <= 0) {
+      setModalError("Please enter a valid number of units.");
       return;
     }
 
+    setModalLoading(true);
+    setModalError("");
+
     try {
       if (modalType === "purchase") {
-        const res = await purchaseLand(id, unitsInput);
+        const res = await purchaseLand(id, units);
+        setModalType(null);
+        setUnitsInput("");
         alert(`✅ Purchase successful!\nReference: ${res.reference}`);
       } else if (modalType === "sell") {
-        const res = await sellLand(id, unitsInput);
+        const res = await sellLand(id, units);
+        setModalType(null);
+        setUnitsInput("");
         alert(`✅ Sold successfully!\nReference: ${res.reference}`);
       }
-      setModalType(null);
-      setUnitsInput("");
+
       window.location.reload();
     } catch (err) {
-      alert(err.message || "Transaction failed. Please try again.");
+      console.error("Transaction error:", err);
+      setModalError(err.message || "Transaction failed. Please try again.");
+    } finally {
+      setModalLoading(false);
     }
   };
 
+  // 🧠 UI states
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -98,7 +113,7 @@ export default function LandDetails() {
       </div>
     );
 
-  // Prepare Lightbox images array
+  // 🖼️ Prepare images for Lightbox
   const images =
     land.images?.map((img) => ({
       src: `${BASE_URL}/storage/${img.image_path}`,
@@ -114,7 +129,7 @@ export default function LandDetails() {
       </Link>
 
       <div className="bg-white shadow rounded-xl overflow-hidden">
-        {/* 🖼️ Image section with click to view */}
+        {/* IMAGE GALLERY */}
         {images.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             {images.map((img, i) => (
@@ -138,7 +153,7 @@ export default function LandDetails() {
           />
         )}
 
-        {/* Land details */}
+        {/* LAND DETAILS */}
         <div className="p-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-3">
             {land.title}
@@ -167,11 +182,12 @@ export default function LandDetails() {
             </p>
           </div>
 
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed mb-6">
             {land.description || "No description available."}
           </p>
 
-          <div className="mt-6 flex gap-3">
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-3">
             <button
               onClick={() => setModalType("purchase")}
               className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
@@ -191,18 +207,18 @@ export default function LandDetails() {
         </div>
       </div>
 
-      {/* Lightbox Viewer */}
+      {/* LIGHTBOX */}
       {open && (
         <Lightbox
           open={open}
           close={() => setOpen(false)}
           index={photoIndex}
           slides={images}
-          plugins={images.length > 1 ? [Thumbnails] : []} // 🧠 no scrolling if only 1 image
+          plugins={images.length > 1 ? [Thumbnails] : []}
         />
       )}
 
-      {/* Modal for Purchase/Sell */}
+      {/* MODAL FOR BUY/SELL */}
       {modalType && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-96">
@@ -213,27 +229,65 @@ export default function LandDetails() {
             <input
               type="number"
               value={unitsInput}
-              onChange={(e) => setUnitsInput(e.target.value)}
+              onChange={(e) => {
+                const value = Math.max(0, Number(e.target.value));
+                setUnitsInput(value);
+              }}
               placeholder="Enter number of units"
-              className="w-full border rounded-lg px-3 py-2 mb-4 focus:ring focus:ring-blue-300"
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
             />
+
+            {modalError && (
+              <p className="text-red-600 text-sm mb-3">{modalError}</p>
+            )}
 
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setModalType(null)}
+                onClick={() => {
+                  setModalType(null);
+                  setModalError("");
+                }}
                 className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
               >
                 Cancel
               </button>
+
               <button
                 onClick={handleAction}
-                className={`px-4 py-2 rounded-lg text-white ${
+                disabled={modalLoading}
+                className={`px-4 py-2 rounded-lg text-white flex items-center justify-center gap-2 ${
                   modalType === "purchase"
                     ? "bg-green-600 hover:bg-green-700"
                     : "bg-yellow-500 hover:bg-yellow-600"
                 }`}
               >
-                Confirm
+                {modalLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm"
+                )}
               </button>
             </div>
           </div>

@@ -20,23 +20,25 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch user stats
-        const statsRes = await api.get("/user/stats");
-        setStats(statsRes.data.data);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setTransactions([]); 
+      const [statsRes, txRes] = await Promise.all([
+        api.get("/user/stats"),
+        api.get("/transactions/user"),
+      ]);
+      setStats(statsRes.data.data);
+      setTransactions(txRes.data.data || []);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
 
-        // Fetch user transactions
-        const txRes = await api.get("/transactions/user");
-        setTransactions(txRes.data.data || []);
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   if (!user || loading) {
     return (
@@ -126,86 +128,6 @@ export default function Dashboard() {
           </div>
         </div>
        
-   {/* Investment Growth Chart */}
-<div className="bg-white shadow p-6 rounded-lg">
-  <h2 className="text-lg font-semibold mb-4">Investment Growth</h2>
-
-  {transactions.length === 0 ? (
-    <p className="text-gray-500 text-sm">No transaction data available yet.</p>
-  ) : (
-    <ResponsiveContainer width="100%" height={320}>
-      <LineChart
-        data={(() => {
-          const sorted = [...transactions].sort(
-            (a, b) => new Date(a.date) - new Date(b.date)
-          );
-
-          let invested = 0;
-          let withdrawn = 0;
-
-          return sorted.map((tx) => {
-            const amt = parseFloat(tx.amount);
-            if (tx.type === "Deposit" || tx.type === "Purchase") invested += amt;
-            if (tx.type === "Withdrawal") withdrawn += amt;
-
-            return {
-              date: new Date(tx.date).toLocaleDateString("en-NG", {
-                month: "short",
-                day: "numeric",
-              }),
-              invested,
-              withdrawn,
-            };
-          });
-        })()}
-        margin={{ top: 10, right: 30, left: 60, bottom: 0 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="date" tick={{ fill: "#6b7280" }} />
-        <YAxis
-          tickFormatter={(val) => `₦${val.toLocaleString()}`}
-          tick={{ fill: "#6b7280" }}
-        />
-
-        <Tooltip
-          formatter={(value, name) => {
-            if (name === "invested")
-              return [`₦${Number(value).toLocaleString()}`, "Total Invested"];
-            if (name === "withdrawn")
-              return [`₦${Number(value).toLocaleString()}`, "Total Withdrawn"];
-            return [value, name];
-          }}
-          labelFormatter={(label) => label} 
-        />
-
-        {/* Blue Line: Invested */}
-        <Line
-          type="monotone"
-          dataKey="invested"
-          stroke="#2563EB"
-          strokeWidth={2.5}
-          dot={{ r: 4, fill: "#2563EB" }}
-          activeDot={{ r: 6 }}
-          name="Total Invested"
-        />
-
-        {/* Red Line: Withdrawn */}
-        <Line
-          type="monotone"
-          dataKey="withdrawn"
-          stroke="#DC2626"
-          strokeWidth={2.5}
-          dot={{ r: 4, fill: "#DC2626" }}
-          activeDot={{ r: 6 }}
-          name="Total Withdrawn"
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  )}
-</div>
-
-
-
         {/* Recent Transactions */}
         <div className="bg-white shadow p-6 rounded-lg">
           <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>

@@ -7,7 +7,22 @@ const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
 });
 
-// Purchase units of a land
+// Helper to safely extract backend error messages
+async function parseError(response) {
+  try {
+    const data = await response.json();
+    return (
+      data.message ||
+      data.error ||
+      (typeof data === "string" ? data : null) ||
+      "Something went wrong."
+    );
+  } catch {
+    return "Unexpected server response.";
+  }
+}
+
+/* PURCHASE LAND */
 export async function purchaseLand(id, units) {
   try {
     const response = await fetch(`${API_URL}/${id}/purchase`, {
@@ -17,18 +32,18 @@ export async function purchaseLand(id, units) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to purchase land units.");
+      const message = await parseError(response);
+      throw new Error(message);
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error purchasing land:", error);
+    console.error("❌ Error purchasing land:", error);
     throw error;
   }
 }
 
-// Sell units of a land
+/* SELL LAND */
 export async function sellLand(id, units) {
   try {
     const response = await fetch(`${API_URL}/${id}/sell`, {
@@ -38,18 +53,18 @@ export async function sellLand(id, units) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to sell land units.");
+      const message = await parseError(response);
+      throw new Error(message);
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error selling land:", error);
+    console.error("❌ Error selling land:", error);
     throw error;
   }
 }
 
-// Get units owned for a land
+/* GET USER UNITS FOR LAND */
 export async function getUserUnitsForLand(id) {
   try {
     const response = await fetch(`${API_URL}/${id}/units`, {
@@ -57,13 +72,13 @@ export async function getUserUnitsForLand(id) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch user units.");
+      const message = await parseError(response);
+      throw new Error(message);
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching user units:", error);
+    console.error("❌ Error fetching user units:", error);
     throw error;
   }
 }

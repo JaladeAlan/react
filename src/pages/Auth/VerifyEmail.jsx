@@ -1,10 +1,53 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../../utils/api";
-import OTPInput from "../../components/OTPInput";
 import FormError from "../../components/FormError";
 import handleApiError from "../../utils/handleApiError";
 
+// OTPInput Component
+function OTPInput({ otp, setOtp }) {
+  const handleChange = (e, idx) => {
+    const val = e.target.value;
+    if (/^\d?$/.test(val)) { // allow only single digit numbers
+      const newOtp = [...otp];
+      newOtp[idx] = val;
+      setOtp(newOtp);
+
+      // Auto focus next input
+      if (val && idx < otp.length - 1) {
+        const nextInput = document.getElementById(`otp-${idx + 1}`);
+        if (nextInput) nextInput.focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (e, idx) => {
+    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
+      const prevInput = document.getElementById(`otp-${idx - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  return (
+    <div className="flex justify-center gap-2 mb-4">
+      {otp.map((digit, idx) => (
+        <input
+          key={idx}
+          id={`otp-${idx}`}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={(e) => handleChange(e, idx)}
+          onKeyDown={(e) => handleKeyDown(e, idx)}
+          className="w-12 h-12 text-center border rounded focus:outline-none focus:ring focus:ring-blue-400 text-lg"
+        />
+      ))}
+    </div>
+  );
+}
+
+// Main VerifyEmail Component
 export default function VerifyEmail() {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
@@ -93,10 +136,32 @@ export default function VerifyEmail() {
           <button
             type="submit"
             disabled={loading}
-            className={`mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition ${
-              loading ? "opacity-70 cursor-not-allowed" : ""
+            className={`mt-6 w-full bg-blue-600 text-white py-2 rounded-lg flex justify-center items-center transition ${
+              loading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
             }`}
           >
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            )}
             {loading ? "Verifying..." : "Verify Email"}
           </button>
         </form>
