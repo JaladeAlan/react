@@ -1,21 +1,61 @@
+import { useState } from "react";
+import TransactionPin from "./TransactionPin";
+import ResetPin from "./ResetPin";
+
 export default function Settings() {
+  const [activeTab, setActiveTab] = useState("pin");
+
   return (
-    <div className="max-w-3xl mx-auto mt-8">
-      <h1 className="text-3xl font-bold text-blue-600 mb-6">Settings</h1>
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">
+        Account Settings
+      </h1>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
-          <input type="text" placeholder="John Doe" className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
-          <input type="email" placeholder="john@example.com" className="mt-1 w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" />
-        </div>
-
-        <button className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-          Save Changes
+      {/* Tabs Navigation */}
+      <div className="flex gap-6 border-b mb-6">
+        <button
+          onClick={() => setActiveTab("pin")}
+          className={`pb-2 font-medium transition ${
+            activeTab === "pin"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-blue-600"
+          }`}
+        >
+          Transaction PIN
         </button>
+
+        <button
+          onClick={() => setActiveTab("reset")}
+          className={`pb-2 font-medium transition ${
+            activeTab === "reset"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-blue-600"
+          }`}
+        >
+          Reset PIN
+        </button>
+
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`pb-2 font-medium transition ${
+            activeTab === "profile"
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-blue-600"
+          }`}
+        >
+          Profile
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="min-h-[200px]">
+        {activeTab === "pin" && <TransactionPin />}
+        {activeTab === "reset" && <ResetPin />}
+        {activeTab === "profile" && (
+          <div className="text-gray-600">
+            <p>Profile settings coming soon (update name, email, or password here).</p>
+          </div>
+        )}
       </div>
     </div>
   );

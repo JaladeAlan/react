@@ -23,12 +23,12 @@ async function parseError(response) {
 }
 
 /* PURCHASE LAND */
-export async function purchaseLand(id, units) {
+export async function purchaseLand(id, units, pin) {
   try {
     const response = await fetch(`${API_URL}/${id}/purchase`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ units }),
+      body: JSON.stringify({ units, pin }),
     });
 
     if (!response.ok) {
@@ -44,12 +44,12 @@ export async function purchaseLand(id, units) {
 }
 
 /* SELL LAND */
-export async function sellLand(id, units) {
+export async function sellLand(id, units, pin) {
   try {
     const response = await fetch(`${API_URL}/${id}/sell`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ units }),
+      body: JSON.stringify({ units, pin }),
     });
 
     if (!response.ok) {

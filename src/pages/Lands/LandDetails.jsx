@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../utils/api";
 import {
@@ -19,10 +19,11 @@ export default function LandDetails() {
   const [userUnits, setUserUnits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [modalError, setModalError] = useState(""); // ❗ Error inside modal
+  const [modalError, setModalError] = useState("");
   const [modalType, setModalType] = useState(null);
   const [unitsInput, setUnitsInput] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
+  const [transactionPin, setTransactionPin] = useState("");
 
   // Lightbox state
   const [open, setOpen] = useState(false);
@@ -31,34 +32,34 @@ export default function LandDetails() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-  // ✅ Fetch land + user units
-  useEffect(() => {
-    const fetchLand = async () => {
-      try {
-        const res = await api.get(`/lands/${id}`);
-        setLand(res.data);
-      } catch (err) {
-        console.error("Error fetching land:", err);
-        setError("Unable to load land details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchUserUnits = async () => {
-      try {
-        const res = await getUserUnitsForLand(id);
-        if (res.units_owned !== undefined) setUserUnits(res.units_owned);
-      } catch (err) {
-        console.error("Error fetching user units:", err);
-      }
-    };
-
-    fetchLand();
-    fetchUserUnits();
+  // Fetch functions
+  const fetchLand = useCallback(async () => {
+    try {
+      const res = await api.get(`/lands/${id}`);
+      setLand(res.data);
+    } catch (err) {
+      console.error("Error fetching land:", err);
+      setError("Unable to load land details.");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  // ✅ Handle purchase/sell
+  const fetchUserUnits = useCallback(async () => {
+    try {
+      const res = await getUserUnitsForLand(id);
+      if (res.units_owned !== undefined) setUserUnits(res.units_owned);
+    } catch (err) {
+      console.error("Error fetching user units:", err);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchLand();
+    fetchUserUnits();
+  }, [fetchLand, fetchUserUnits]);
+
+  // Handle purchase/sell
   const handleAction = async () => {
     const units = Number(unitsInput);
     if (!units || isNaN(units) || units <= 0) {
@@ -66,32 +67,45 @@ export default function LandDetails() {
       return;
     }
 
+    if (!/^\d{4}$/.test(transactionPin)) {
+      setModalError("Transaction PIN must be a 4-digit number.");
+      return;
+    }
+
     setModalLoading(true);
     setModalError("");
 
     try {
+      let res;
       if (modalType === "purchase") {
-        const res = await purchaseLand(id, units);
-        setModalType(null);
-        setUnitsInput("");
+        res = await purchaseLand(id, units, transactionPin);
         alert(`✅ Purchase successful!\nReference: ${res.reference}`);
       } else if (modalType === "sell") {
-        const res = await sellLand(id, units);
-        setModalType(null);
-        setUnitsInput("");
+        res = await sellLand(id, units, transactionPin);
         alert(`✅ Sold successfully!\nReference: ${res.reference}`);
       }
 
-      window.location.reload();
+      // Re-fetch state instead of full reload
+      await fetchLand();
+      await fetchUserUnits();
+
+      // Reset modal inputs
+      setModalType(null);
+      setUnitsInput("");
+      setTransactionPin("");
     } catch (err) {
       console.error("Transaction error:", err);
-      setModalError(err.message || "Transaction failed. Please try again.");
+      setModalError(
+        err.response?.data?.message ||
+          err.message ||
+          "Transaction failed. Please try again."
+      );
     } finally {
       setModalLoading(false);
     }
   };
 
-  // 🧠 UI states
+  // UI states
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -113,7 +127,6 @@ export default function LandDetails() {
       </div>
     );
 
-  // 🖼️ Prepare images for Lightbox
   const images =
     land.images?.map((img) => ({
       src: `${BASE_URL}/storage/${img.image_path}`,
@@ -218,7 +231,7 @@ export default function LandDetails() {
         />
       )}
 
-      {/* MODAL FOR BUY/SELL */}
+      {/* MODAL */}
       {modalType && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-96">
@@ -228,12 +241,18 @@ export default function LandDetails() {
 
             <input
               type="number"
+              min="1"
               value={unitsInput}
-              onChange={(e) => {
-                const value = Math.max(0, Number(e.target.value));
-                setUnitsInput(value);
-              }}
+              onChange={(e) => setUnitsInput(e.target.value)}
               placeholder="Enter number of units"
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
+            />
+
+            <input
+              type="password"
+              value={transactionPin}
+              onChange={(e) => setTransactionPin(e.target.value)}
+              placeholder="Enter transaction PIN"
               className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
             />
 
@@ -244,10 +263,14 @@ export default function LandDetails() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => {
+                  if (modalLoading) return;
                   setModalType(null);
                   setModalError("");
+                  setUnitsInput("");
+                  setTransactionPin("");
                 }}
-                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+                disabled={modalLoading}
+                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -259,7 +282,7 @@ export default function LandDetails() {
                   modalType === "purchase"
                     ? "bg-green-600 hover:bg-green-700"
                     : "bg-yellow-500 hover:bg-yellow-600"
-                }`}
+                } disabled:opacity-50`}
               >
                 {modalLoading ? (
                   <>
