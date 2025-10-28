@@ -1,6 +1,7 @@
 import { useState } from "react";
 import TransactionPin from "./TransactionPin";
 import ResetPin from "./ResetPin";
+import ProfileSettings from "./ProfileSettings"; 
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("pin");
@@ -11,7 +12,6 @@ export default function Settings() {
         Account Settings
       </h1>
 
-      {/* Tabs Navigation */}
       <div className="flex gap-6 border-b mb-6">
         <button
           onClick={() => setActiveTab("pin")}
@@ -47,15 +47,10 @@ export default function Settings() {
         </button>
       </div>
 
-      {/* Tab Content */}
       <div className="min-h-[200px]">
         {activeTab === "pin" && <TransactionPin />}
         {activeTab === "reset" && <ResetPin />}
-        {activeTab === "profile" && (
-          <div className="text-gray-600">
-            <p>Profile settings coming soon (update name, email, or password here).</p>
-          </div>
-        )}
+        {activeTab === "profile" && <ProfileSettings />} 
       </div>
     </div>
   );
