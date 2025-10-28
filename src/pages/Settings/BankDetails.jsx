@@ -16,12 +16,19 @@ export default function BankDetails() {
     const fetchBanks = async () => {
       try {
         const res = await api.get("/paystack/banks");
-        setBanks(res.data.data || []);
+        const bankData = res.data.data || [];
+
+        const uniqueBanks = Array.from(
+          new Map(bankData.map((b) => [b.code, b])).values()
+        );
+
+        setBanks(uniqueBanks);
       } catch (err) {
         console.error("❌ Failed to load banks:", err);
         toast.error("Unable to load bank list. Please try again later.");
       }
     };
+
     fetchBanks();
   }, []);
 
@@ -58,6 +65,7 @@ export default function BankDetails() {
       </h2>
 
       <form onSubmit={handleUpdate} className="space-y-4">
+        {/* Bank Name Dropdown */}
         <div>
           <label className="block text-gray-700 mb-1">Bank Name</label>
           <select
@@ -66,14 +74,15 @@ export default function BankDetails() {
             className="w-full border rounded-lg p-2 focus:outline-none focus:ring focus:ring-blue-200"
           >
             <option value="">Select Bank</option>
-            {banks.map((bank) => (
-              <option key={bank.code} value={bank.name}>
+            {banks.map((bank, index) => (
+              <option key={`${bank.code}-${index}`} value={bank.name}>
                 {bank.name}
               </option>
             ))}
           </select>
         </div>
 
+        {/* Account Number Input */}
         <div>
           <label className="block text-gray-700 mb-1">Account Number</label>
           <input
@@ -86,6 +95,7 @@ export default function BankDetails() {
           />
         </div>
 
+        {/* Account Name (readonly, appears after API verification) */}
         {accountName && (
           <div>
             <label className="block text-gray-700 mb-1">Account Name</label>
@@ -98,6 +108,7 @@ export default function BankDetails() {
           </div>
         )}
 
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
