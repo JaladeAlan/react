@@ -53,7 +53,7 @@ export default function Register() {
           name="name"
           onChange={handleChange}
           value={form.name}
-          placeholder="Name"
+          placeholder="Fullname"
           className="border w-full mb-3 px-3 py-2 rounded"
           required
         />
