@@ -27,6 +27,7 @@ import ProductList from "./pages/Marketplace/ProductList";
 import LandDetails from "./pages/Lands/LandDetails";
 import Checkout from "./pages/Marketplace/Checkout";
 import Portfolio from "./pages/Portfolio/Portfolio";
+import Wallet from "./pages/Wallet/Wallet";
 import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 
@@ -109,6 +110,14 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute>
                     <Withdraw />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/wallet"
+                element={
+                  <ProtectedRoute>
+                    <Wallet />
                   </ProtectedRoute>
                 }
               />

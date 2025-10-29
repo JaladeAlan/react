@@ -9,7 +9,8 @@ export default function Header() {
   const links = [
     { name: "Home", path: "/dashboard" },
     { name: "Lands", path: "/lands" },
-    { name: "Marketplace", path: "/marketplace" },
+    // { name: "Marketplace", path: "/marketplace" },
+    { name: "Wallet", path: "/wallet" },
     { name: "Portfolio", path: "/portfolio" },
     { name: "Settings", path: "/settings" },
   ];
