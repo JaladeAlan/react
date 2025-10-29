@@ -232,90 +232,143 @@ export default function LandDetails() {
       )}
 
       {/* MODAL */}
-      {modalType && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-96">
-            <h2 className="text-lg font-semibold mb-4 text-gray-800 capitalize">
-              {modalType} Units
-            </h2>
+     {modalType && (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-lg w-96">
+          <h2 className="text-lg font-semibold mb-4 text-gray-800 capitalize">
+            {modalType === "purchase" ? "Purchase Units" : "Sell Units"}
+          </h2>
 
-            <input
-              type="number"
-              min="1"
-              value={unitsInput}
-              onChange={(e) => setUnitsInput(e.target.value)}
-              placeholder="Enter number of units"
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
-            />
+          {/* ✅ Units Input */}
+          <label className="block text-gray-700 mb-1">Number of Units</label>
+          <input
+            type="number"
+            min="1"
+            max={modalType === "sell" ? userUnits : land.available_units}
+            value={unitsInput}
+            onChange={(e) => {
+              let value = e.target.value;
+              if (modalType === "sell" && Number(value) > userUnits) {
+                value = userUnits; // cap at owned units
+              }
+              if (modalType === "purchase" && Number(value) > land.available_units) {
+                value = land.available_units; // cap at available
+              }
+              setUnitsInput(value);
+            }}
+            placeholder={`Enter number of units to ${modalType}`}
+            className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
+          />
+          {modalType === "sell" && (
+            <p className="text-sm text-gray-500 mb-2">
+              You own: <strong>{userUnits}</strong> units
+            </p>
+          )}
+          {modalType === "purchase" && (
+            <p className="text-sm text-gray-500 mb-2">
+              Available: <strong>{land.available_units}</strong> units
+            </p>
+          )}
 
-            <input
-              type="password"
-              value={transactionPin}
-              onChange={(e) => setTransactionPin(e.target.value)}
-              placeholder="Enter transaction PIN"
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
-            />
+          {/* ✅ Transaction PIN Input */}
+          <label className="block text-gray-700 mb-1">Transaction PIN</label>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={transactionPin}
+            onChange={(e) => {
+              // allow only 4 digits
+              const digitsOnly = e.target.value.replace(/\D/g, "");
+              if (digitsOnly.length <= 4) setTransactionPin(digitsOnly);
+            }}
+            placeholder="Enter your 4-digit PIN"
+            className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
+          />
 
-            {modalError && (
-              <p className="text-red-600 text-sm mb-3">{modalError}</p>
-            )}
+          {modalError && (
+            <p className="text-red-600 text-sm mb-3">{modalError}</p>
+          )}
 
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  if (modalLoading) return;
-                  setModalType(null);
-                  setModalError("");
-                  setUnitsInput("");
-                  setTransactionPin("");
-                }}
-                disabled={modalLoading}
-                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 disabled:opacity-50"
-              >
-                Cancel
-              </button>
+          {/* ✅ Estimated total */}
+          {unitsInput > 0 && (
+            <p className="text-gray-700 text-sm mb-3">
+              {modalType === "purchase" ? (
+                <>
+                  You’ll pay:{" "}
+                  <span className="font-semibold text-blue-700">
+                    ₦{(unitsInput * land.price_per_unit).toLocaleString()}
+                  </span>
+                </>
+              ) : (
+                <>
+                  You’ll receive:{" "}
+                  <span className="font-semibold text-green-700">
+                    ₦{(unitsInput * land.price_per_unit).toLocaleString()}
+                  </span>
+                </>
+              )}
+            </p>
+          )}
 
-              <button
-                onClick={handleAction}
-                disabled={modalLoading}
-                className={`px-4 py-2 rounded-lg text-white flex items-center justify-center gap-2 ${
-                  modalType === "purchase"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-yellow-500 hover:bg-yellow-600"
-                } disabled:opacity-50`}
-              >
-                {modalLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      ></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  "Confirm"
-                )}
-              </button>
-            </div>
+          {/* ✅ Buttons */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                if (modalLoading) return;
+                setModalType(null);
+                setModalError("");
+                setUnitsInput("");
+                setTransactionPin("");
+              }}
+              disabled={modalLoading}
+              className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={handleAction}
+              disabled={modalLoading}
+              className={`px-4 py-2 rounded-lg text-white flex items-center justify-center gap-2 ${
+                modalType === "purchase"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-yellow-500 hover:bg-yellow-600"
+              } disabled:opacity-50`}
+            >
+              {modalLoading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
+
     </div>
   );
 }

@@ -28,7 +28,7 @@ export async function purchaseLand(id, units, pin) {
     const response = await fetch(`${API_URL}/${id}/purchase`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ units, pin }),
+      body: JSON.stringify({ units, transaction_pin: pin }),
     });
 
     if (!response.ok) {
@@ -49,7 +49,7 @@ export async function sellLand(id, units, pin) {
     const response = await fetch(`${API_URL}/${id}/sell`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ units, pin }),
+      body: JSON.stringify({ units, transaction_pin: pin }),
     });
 
     if (!response.ok) {

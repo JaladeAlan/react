@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Context & Routing
 import { AuthProvider } from "./context/AuthContext";
@@ -77,7 +79,7 @@ function AnimatedRoutes() {
                     <Dashboard />
                   </ProtectedRoute>
                 }
-              />   
+              />
               <Route
                 path="/lands"
                 element={
@@ -126,7 +128,6 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               />
-
               <Route
                 path="/checkout"
                 element={
@@ -161,6 +162,17 @@ export default function App() {
       <AuthProvider>
         <ScrollToTop />
         <AnimatedRoutes />
+        {/* ✅ Toastify container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
       </AuthProvider>
     </BrowserRouter>
   );

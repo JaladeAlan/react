@@ -67,7 +67,7 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-sm text-gray-500">Total Invested</h3>
+              <h3 className="text-sm text-gray-500">Cumulative Total Invested</h3>
               <p className="text-2xl font-bold mt-2">
                 ₦{Number(stats.total_invested).toLocaleString()}
               </p>
