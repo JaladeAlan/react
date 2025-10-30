@@ -1,26 +1,32 @@
-export default function handleApiError(err, setError) {
+import { toast } from "react-toastify";
+
+export default function handleApiError(err, fallbackMessage, setError) {
   console.log("🔥 Full error object:", err);
 
+  // Handle no response (network/CORS errors)
   if (!err.response) {
     console.error("Network or CORS error:", err);
-    setError("Network error — please check your connection.");
+    const message = "Network error — please check your connection.";
+    if (typeof setError === "function") setError(message);
+    else toast.error(message);
     return;
   }
 
   const data = err.response.data;
   console.log("📦 Response data:", data);
 
-  if (data?.errors) {
-    const allErrors = Object.values(data.errors).flat();
-    const formatted = allErrors.join("\n");
-    setError(formatted || data.message || "Validation failed.");
-    return;
-  }
+  let message =
+    data?.message ||
+    data?.error ||
+    (data?.errors
+      ? Object.values(data.errors).flat().join("\n")
+      : fallbackMessage || "Something went wrong.");
 
-  if (data?.message || data?.error) {
-    setError(data.message || data.error || "Something went wrong.");
-    return;
+  // If setError is provided (like from useState)
+  if (typeof setError === "function") {
+    setError(message);
+  } else {
+    // Otherwise use toast for global feedback
+    toast.error(message);
   }
-
-  setError("Something went wrong. Please try again.");
 }

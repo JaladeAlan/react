@@ -1,12 +1,14 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useEffect } from "react";
 
 // Context & Routing
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ScrollToTop from "./components/ScrollToTop";
+import { setupApiInterceptors } from "./utils/api";
 
 // Layout
 import Header from "./components/Header";
@@ -31,6 +33,22 @@ import Wallet from "./pages/Wallet/Wallet";
 import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 
+// ------------------------------------------------------------
+// Axios interceptors with React Router
+// ------------------------------------------------------------
+function ApiInterceptorWrapper({ children }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setupApiInterceptors(navigate);
+  }, [navigate]);
+
+  return children;
+}
+
+// ------------------------------------------------------------
+// Animated Routes Component
+// ------------------------------------------------------------
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -165,23 +183,29 @@ function AnimatedRoutes() {
   );
 }
 
+// ------------------------------------------------------------
+// Main App Entry
+// ------------------------------------------------------------
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ScrollToTop />
-        <AnimatedRoutes />
-        {/* ✅ Toastify container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          draggable
-          theme="colored"
-        />
+        <ApiInterceptorWrapper>
+          <ScrollToTop />
+          <AnimatedRoutes />
+
+          {/* Toastify container */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            draggable
+            theme="colored"
+          />
+        </ApiInterceptorWrapper>
       </AuthProvider>
     </BrowserRouter>
   );

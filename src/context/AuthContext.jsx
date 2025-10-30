@@ -1,6 +1,6 @@
-// src/context/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../utils/api";
 
 export const AuthContext = createContext();
@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const checkAuth = async () => {
     const token = localStorage.getItem("token");
@@ -19,7 +20,6 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    //  Attach token to headers
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     try {
@@ -30,6 +30,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
       setUser(null);
+      toast.error("Session expired. Please log in again.");
+
+      // Save current page before redirect
+      localStorage.setItem("redirectAfterLogin", location.pathname);
+      navigate("/login", { replace: true });
     } finally {
       setLoading(false);
     }
@@ -42,9 +47,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await api.post("/login", { email, password });
-      console.log("Full login response:", res);
 
-      //  Extract token flexibly
       const token =
         res?.data?.token ||
         res?.data?.data?.token ||
@@ -53,22 +56,23 @@ export const AuthProvider = ({ children }) => {
           ? JSON.parse(res.data.data)?.token
           : null);
 
-      console.log("Extracted token:", token);
-
       if (!token) throw new Error("No token returned from backend");
 
-      // Save token
       localStorage.setItem("token", token);
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      // Fetch user and navigate
       await checkAuth();
 
-      // Redirect to portfolio
-      navigate("/");
+      toast.success("Login successful!");
 
+      // Go to saved page or dashboard
+      const redirectPath =
+        localStorage.getItem("redirectAfterLogin") || "/dashboard";
+      localStorage.removeItem("redirectAfterLogin");
+      navigate(redirectPath, { replace: true });
     } catch (err) {
       console.error("Login error:", err.response?.data || err.message);
+      toast.error("Login failed. Please check your credentials.");
       throw err;
     }
   };
@@ -79,14 +83,25 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn("Logout error:", err);
     }
+
     localStorage.removeItem("token");
     delete api.defaults.headers.common["Authorization"];
     setUser(null);
-    navigate("/");
+
+    toast.info("Logged out successfully!");
+    navigate("/login", { replace: true });
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, checkAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        loading,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

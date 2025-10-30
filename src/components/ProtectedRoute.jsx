@@ -1,50 +1,25 @@
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import api from "../utils/api";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token found");
-
-        //  Log only in dev mode
-        if (import.meta.env.MODE === "development") {
-          console.log("ProtectedRoute: token found");
-        }
-
-        const res = await api.get("/me"); 
-        if (res.data?.success) {
-          setAuthenticated(true);
-        } else {
-          throw new Error("Auth check failed");
-        }
-      } catch (err) {
-        if (import.meta.env.MODE === "development") {
-          console.error("Auth check failed:", err.response?.data || err.message);
-        }
-
-        // clear bad token if it's expired or invalid
-        localStorage.removeItem("token");
-        setAuthenticated(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  if (loading)
+  // Show a loading spinner while verifying authentication
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-gray-500">
-        Loading...
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900 dark:border-white"></div>
       </div>
     );
+  }
 
-  return authenticated ? children : <Navigate to="/login" replace />;
+  // If no user, redirect to login and remember intended route
+  if (!user) {
+    localStorage.setItem("redirectAfterLogin", location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+
+  // If authenticated, render the protected page
+  return children;
 }

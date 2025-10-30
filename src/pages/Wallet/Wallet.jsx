@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../utils/api";
 import handleApiError from "../../utils/handleApiError";
@@ -10,8 +11,27 @@ export default function Wallet() {
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Fetch wallet & filtered transactions
+  const navigate = useNavigate();
+
+  // ✅ Toast component (has access to navigate)
+  const GoToSettingsToast = ({ message }) => (
+    <div>
+      <p>{message}</p>
+      <button
+        onClick={() => {
+          toast.dismiss();
+          navigate("/settings");
+        }}
+        className="mt-2 bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded text-sm"
+      >
+        Go to Settings
+      </button>
+    </div>
+  );
+
+  // ✅ Fetch wallet data
   const fetchWalletData = async () => {
     try {
       const [walletRes, txRes] = await Promise.all([
@@ -21,14 +41,13 @@ export default function Wallet() {
 
       setBalance(walletRes.data.user.balance || 0);
 
-      // Only show deposits & withdrawals
       const filteredTx = (txRes.data.data || []).filter(
         (t) => t.type === "Deposit" || t.type === "Withdrawal"
       );
-
       setTransactions(filteredTx);
+      setError(null);
     } catch (error) {
-      handleApiError(error, "Failed to load wallet data");
+      handleApiError(error, setError);
     }
   };
 
@@ -36,10 +55,11 @@ export default function Wallet() {
     fetchWalletData();
   }, []);
 
-  // Handle Deposit
+  // ✅ Deposit handler
   const handleDeposit = async (e) => {
     e.preventDefault();
     const amount = Number(depositAmount);
+
     if (!amount || isNaN(amount) || amount < 1000)
       return toast.error("Minimum deposit amount is ₦1,000");
 
@@ -54,43 +74,66 @@ export default function Wallet() {
         fetchWalletData();
       }
     } catch (error) {
-      handleApiError(error, "Deposit failed");
+      handleApiError(error, setError);
     } finally {
       setLoading(null);
     }
   };
 
-  // Handle Withdraw
-  const handleWithdraw = async (e) => {
-    e.preventDefault();
-    const amount = Number(withdrawAmount);
-    if (!amount || isNaN(amount) || amount < 1000)
-      return toast.error("Minimum withdrawal amount is ₦1,000");
-    if (!pin || pin.length !== 4)
-      return toast.error("PIN must be exactly 4 digits");
+  // ✅ Withdraw handler
+ const handleWithdraw = async (e) => {
+  e.preventDefault();
+  const amount = Number(withdrawAmount);
 
-    setLoading("withdraw");
-    try {
-      const res = await api.post("/withdraw", { amount, transaction_pin: pin });
-      toast.success(res.data.message || "Withdrawal successful!");
-      setWithdrawAmount("");
-      setPin("");
-      fetchWalletData();
-    } catch (error) {
-      handleApiError(error, "Withdrawal failed");
-    } finally {
-      setLoading(null);
+  if (!amount || isNaN(amount) || amount < 1000)
+    return toast.error("Minimum withdrawal amount is ₦1,000");
+  if (!pin || pin.length !== 4)
+    return toast.error("PIN must be exactly 4 digits");
+
+  setLoading("withdraw");
+  try {
+    const res = await api.post("/withdraw", { amount, transaction_pin: pin });
+    toast.success(res.data.message || "Withdrawal successful!");
+    setWithdrawAmount("");
+    setPin("");
+    fetchWalletData();
+  } catch (error) {
+    // ✅ Check for "transaction pin not set"
+    if (
+      error.response &&
+      error.response.status === 403 &&
+      error.response.data?.message?.toLowerCase().includes("transaction pin not set")
+    ) {
+      toast.error(
+        <GoToSettingsToast message={error.response.data.message} />,
+        { autoClose: false }
+      );
     }
-  };
+    // ✅ Check for "insufficient funds"
+    else if (
+      error.response &&
+      (error.response.status === 400 || error.response.status === 422) &&
+      error.response.data?.message?.toLowerCase().includes("insufficient funds")
+    ) {
+      toast.error("Insufficient funds — please check your balance.");
+    }
+    // ✅ All other errors
+    else {
+      handleApiError(error, setError);
+    }
+  } finally {
+    setLoading(null);
+  }
+};
 
-  // Format date
+  // ✅ Helper: Format date
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleString("en-NG", {
       dateStyle: "medium",
       timeStyle: "short",
     });
 
-  // Get transaction color
+  // ✅ Helper: Status color
   const getStatusColor = (status) => {
     if (!status) return "text-gray-400";
     const s = status.toLowerCase();
@@ -106,6 +149,13 @@ export default function Wallet() {
         Wallet
       </h1>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Balance */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6 text-center">
         <p className="text-gray-500">Available Balance</p>
@@ -114,7 +164,7 @@ export default function Wallet() {
         </h2>
       </div>
 
-      {/* Deposit */}
+      {/* Deposit Section */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-green-600 mb-4">
           Deposit Funds
@@ -138,20 +188,34 @@ export default function Wallet() {
         </form>
       </div>
 
-      {/* Withdraw */}
+      {/* Withdraw Section */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-red-600 mb-4">
           Withdraw Funds
         </h2>
+        
+         <p className="text-sm text-gray-500 mb-4">
+          Max withdrawable: ₦{Number(balance).toLocaleString()}
+         </p>
+        
         <form onSubmit={handleWithdraw} className="space-y-4">
-          <input
-            type="number"
-            min={1000}
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            placeholder="₦1,000 minimum"
-            className="w-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none"
-          />
+        <input
+          type="number"
+          min={1000}
+          max={balance}
+          value={withdrawAmount}
+          onChange={(e) => {
+            const val = Number(e.target.value);
+            if (val > balance) {
+              toast.warning("You cannot withdraw more than your available balance");
+              setWithdrawAmount(balance);
+            } else {
+              setWithdrawAmount(e.target.value);
+            }
+          }}
+          placeholder="₦1,000 minimum"
+          className="w-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none"
+        />
           <input
             type="password"
             value={pin}
@@ -172,7 +236,7 @@ export default function Wallet() {
         </form>
       </div>
 
-      {/* Deposit & Withdraw History */}
+      {/* Transaction History */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Deposit & Withdrawal History
@@ -183,7 +247,10 @@ export default function Wallet() {
         ) : (
           <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
             {transactions.map((t, i) => (
-              <div key={i} className="py-3 flex justify-between items-start text-sm">
+              <div
+                key={i}
+                className="py-3 flex justify-between items-start text-sm"
+              >
                 <div>
                   <p
                     className={`font-medium ${
