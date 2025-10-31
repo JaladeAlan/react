@@ -28,7 +28,7 @@ export default function LandDetails() {
   const [open, setOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://growth-estate.onrender.com";
 
   // Fetch land details
   const fetchLand = useCallback(async () => {

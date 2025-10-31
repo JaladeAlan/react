@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api/lands`
-  : "http://127.0.0.1:8000/api/lands";
+  : "https://growth-estate.onrender.com/api/lands";
 
 const getAuthHeaders = () => ({
   "Content-Type": "application/json",

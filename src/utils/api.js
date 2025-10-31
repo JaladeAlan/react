@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 
 // Create the axios instance
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "https://growth-estate.onrender.com/api",
 });
 
 // Attach token to all requests

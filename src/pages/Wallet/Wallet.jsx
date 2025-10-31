@@ -15,7 +15,7 @@ export default function Wallet() {
 
   const navigate = useNavigate();
 
-  // ✅ Toast component (has access to navigate)
+  // Toast component (has access to navigate)
   const GoToSettingsToast = ({ message }) => (
     <div>
       <p>{message}</p>
@@ -31,7 +31,7 @@ export default function Wallet() {
     </div>
   );
 
-  // ✅ Fetch wallet data
+  // Fetch wallet data
   const fetchWalletData = async () => {
     try {
       const [walletRes, txRes] = await Promise.all([
@@ -55,7 +55,7 @@ export default function Wallet() {
     fetchWalletData();
   }, []);
 
-  // ✅ Deposit handler
+  // Deposit handler
   const handleDeposit = async (e) => {
     e.preventDefault();
     const amount = Number(depositAmount);
@@ -80,7 +80,7 @@ export default function Wallet() {
     }
   };
 
-  // ✅ Withdraw handler
+  // Withdraw handler
  const handleWithdraw = async (e) => {
   e.preventDefault();
   const amount = Number(withdrawAmount);
@@ -98,7 +98,7 @@ export default function Wallet() {
     setPin("");
     fetchWalletData();
   } catch (error) {
-    // ✅ Check for "transaction pin not set"
+    // Check for "transaction pin not set"
     if (
       error.response &&
       error.response.status === 403 &&
@@ -109,7 +109,7 @@ export default function Wallet() {
         { autoClose: false }
       );
     }
-    // ✅ Check for "insufficient funds"
+    // Check for "insufficient funds"
     else if (
       error.response &&
       (error.response.status === 400 || error.response.status === 422) &&
@@ -117,7 +117,7 @@ export default function Wallet() {
     ) {
       toast.error("Insufficient funds — please check your balance.");
     }
-    // ✅ All other errors
+    // All other errors
     else {
       handleApiError(error, setError);
     }
@@ -126,14 +126,14 @@ export default function Wallet() {
   }
 };
 
-  // ✅ Helper: Format date
+  // Helper: Format date
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleString("en-NG", {
       dateStyle: "medium",
       timeStyle: "short",
     });
 
-  // ✅ Helper: Status color
+  // Helper: Status color
   const getStatusColor = (status) => {
     if (!status) return "text-gray-400";
     const s = status.toLowerCase();

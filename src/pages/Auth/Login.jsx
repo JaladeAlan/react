@@ -8,7 +8,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const [loading, setLoading] = useState(false); // <-- added loading state
+  const [loading, setLoading] = useState(false); 
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -21,7 +21,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setFieldErrors({});
-    setLoading(true); // <-- start loading
+    setLoading(true); 
 
     try {
       await login(form.email, form.password);
@@ -29,7 +29,7 @@ export default function Login() {
     } catch (err) {
       handleApiError(err, setError, setFieldErrors);
     } finally {
-      setLoading(false); // <-- stop loading
+      setLoading(false); 
     }
   };
 

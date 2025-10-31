@@ -15,7 +15,7 @@ export default function BankDetails() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
-  // 🔹 Fetch user's existing bank details
+  // Fetch user's existing bank details
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -39,7 +39,7 @@ export default function BankDetails() {
     fetchProfile();
   }, []);
 
-  // 🔹 Fetch all banks
+  // Fetch all banks
   useEffect(() => {
     const fetchBanks = async () => {
       try {
@@ -54,7 +54,7 @@ export default function BankDetails() {
     fetchBanks();
   }, []);
 
-  // 🔹 Automatically verify account number when valid
+  // Automatically verify account number when valid
   useEffect(() => {
     const verifyAccount = async () => {
       if (!bankCode || accountNumber.length !== 10) return;
@@ -86,7 +86,7 @@ export default function BankDetails() {
     verifyAccount();
   }, [bankCode, accountNumber]);
 
-  // 🔹 Handle submit
+  // Handle submit
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!bankName || !accountNumber || !accountName) {

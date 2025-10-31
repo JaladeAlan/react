@@ -27,7 +27,7 @@ export default function ProfileSettings() {
     e.preventDefault();
     console.log("Form submitted"); // Debugging confirmation
 
-    // ✅ Basic validation
+    // Basic validation
     if (formData.newPassword !== formData.confirmPassword) {
       const msg = "New passwords do not match";
       setError(msg);
@@ -46,7 +46,7 @@ export default function ProfileSettings() {
     setError("");
 
     try {
-      // ✅ Payload matches backend expectations
+      // Payload matches backend expectations
       await api.post("/user/change-password", {
         current_password: formData.currentPassword,
         new_password: formData.newPassword,

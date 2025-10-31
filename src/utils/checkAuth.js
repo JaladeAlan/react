@@ -5,7 +5,7 @@ export async function checkAuth() {
   if (!token) return false;
 
   try {
-    const response = await axios.get("http://127.0.0.1:8000/api/me", {
+    const response = await axios.get("https://growth-estate.onrender.com/api/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
 

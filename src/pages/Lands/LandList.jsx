@@ -7,7 +7,7 @@ export default function Lands() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://growth-estate.onrender.com";
 
   useEffect(() => {
     const fetchLands = async () => {
