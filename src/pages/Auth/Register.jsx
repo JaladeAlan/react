@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";  
 import api from "../../utils/api";
-import toast from "react-hot-toast";
+import FormError from "../../components/FormError";
+import handleApiError from "../../utils/handleApiError";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -21,23 +23,24 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await api.post("/register", form);
+      await api.post("/register", form);
 
-      toast.success("Account created successfully! Please verify your email.");
+      toast.success("Registration successful! Please verify your email.");
 
-      // Store pending email for verification
       localStorage.setItem("pending_email", form.email);
-
       navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
-      // Handle backend validation errors (422)
-      if (err.response?.status === 422 && err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        Object.values(errors).flat().forEach((msg) => toast.error(msg));
-      } 
-      // Handle other kinds of errors (500, network, etc.)
-      else if (err.response?.data?.message) {
-        toast.error(err.response.data.message);
+      console.error("Full error:", err.response);
+
+      if (err.response?.status === 422) {
+        const { errors } = err.response.data;
+        if (errors) {
+          Object.values(errors).forEach((msgs) => {
+            msgs.forEach((msg) => toast.error(msg));
+          });
+        } else {
+          toast.error("Validation failed. Please check your input.");
+        }
       } else {
         toast.error("Registration failed. Please try again.");
       }
@@ -60,7 +63,7 @@ export default function Register() {
           name="name"
           onChange={handleChange}
           value={form.name}
-          placeholder="Full Name"
+          placeholder="Fullname"
           className="border w-full mb-3 px-3 py-2 rounded"
           required
         />
