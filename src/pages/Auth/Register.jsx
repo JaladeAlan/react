@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
-import handleApiError from "../../utils/handleApiError";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -31,16 +30,17 @@ export default function Register() {
 
       navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
-      // Handle backend validation errors gracefully
-      if (err.response?.data?.errors) {
+      // Handle backend validation errors (422)
+      if (err.response?.status === 422 && err.response?.data?.errors) {
         const errors = err.response.data.errors;
         Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } 
+      // Handle other kinds of errors (500, network, etc.)
+      else if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
       } else {
-        // Fallback for other errors (network, 500, etc.)
         toast.error("Registration failed. Please try again.");
       }
-
-      handleApiError(err, "Registration failed. Please try again.", () => {});
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function Register() {
           name="name"
           onChange={handleChange}
           value={form.name}
-          placeholder="Fullname"
+          placeholder="Full Name"
           className="border w-full mb-3 px-3 py-2 rounded"
           required
         />
