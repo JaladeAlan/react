@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../utils/api";
-import FormError from "../../components/FormError";
+import toast from "react-hot-toast";
 import handleApiError from "../../utils/handleApiError";
 
 export default function Register() {
@@ -11,7 +11,6 @@ export default function Register() {
     password: "",
     password_confirmation: "",
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -20,18 +19,28 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
-      await api.post("/register", form);
+      const res = await api.post("/register", form);
+
+      toast.success("Account created successfully! Please verify your email.");
 
       // Store pending email for verification
       localStorage.setItem("pending_email", form.email);
 
       navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
-      handleApiError(err, "Registration failed. Please try again.", setError);
+      // Handle backend validation errors gracefully
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        // Fallback for other errors (network, 500, etc.)
+        toast.error("Registration failed. Please try again.");
+      }
+
+      handleApiError(err, "Registration failed. Please try again.", () => {});
     } finally {
       setLoading(false);
     }
@@ -46,8 +55,6 @@ export default function Register() {
         <h2 className="text-2xl font-semibold mb-4 text-center">
           Create Account
         </h2>
-
-        <FormError error={error} />
 
         <input
           name="name"
