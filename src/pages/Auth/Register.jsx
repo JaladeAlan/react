@@ -31,7 +31,7 @@ export default function Register() {
 
       navigate("/verify-email", { state: { email: form.email } });
     } catch (err) {
-      handleApiError(err, setError);
+      handleApiError(err, "Registration failed. Please try again.", setError);
     } finally {
       setLoading(false);
     }
