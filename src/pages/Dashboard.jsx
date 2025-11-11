@@ -2,43 +2,33 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
-} from "recharts";
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setTransactions([]); 
-      const [statsRes, txRes] = await Promise.all([
-        api.get("/user/stats"),
-        api.get("/transactions/user"),
-      ]);
-      setStats(statsRes.data.data);
-      setTransactions(txRes.data.data || []);
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-}, []);
-
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setTransactions([]);
+        const [statsRes, txRes] = await Promise.all([
+          api.get("/user/stats"),
+          api.get("/transactions/user"),
+        ]);
+        setStats(statsRes.data.data);
+        setTransactions(txRes.data.data || []);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   if (!user || loading) {
     return (
@@ -50,8 +40,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-  
-      {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-10 space-y-10">
         <h2 className="text-2xl font-bold text-gray-800">
           Welcome back, {user.name || "User"} 👋
@@ -127,7 +115,7 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-       
+
         {/* Recent Transactions */}
         <div className="bg-white shadow p-6 rounded-lg">
           <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
@@ -135,33 +123,78 @@ export default function Dashboard() {
           {transactions.length === 0 ? (
             <p className="text-gray-500 text-sm">No transactions found.</p>
           ) : (
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-left text-gray-700">
-                  <th className="p-3 font-medium">Type</th>
-                  <th className="p-3 font-medium">Land</th>
-                  <th className="p-3 font-medium">Amount</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium">Date</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 text-left text-gray-700">
+                      <th className="p-3 font-medium">Type</th>
+                      <th className="p-3 font-medium">Land</th>
+                      <th className="p-3 font-medium">Amount</th>
+                      <th className="p-3 font-medium">Status</th>
+                      <th className="p-3 font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.slice(0, 5).map((tx, i) => (
+                      <tr
+                        key={i}
+                        className="border-b hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="p-3 text-gray-800 font-medium whitespace-nowrap">
+                          {tx.type}
+                        </td>
+                        <td className="p-3 text-gray-600 whitespace-nowrap">
+                          {tx.land || "N/A"}
+                        </td>
+                        <td className="p-3 text-gray-800 whitespace-nowrap">
+                          ₦{Number(tx.amount).toLocaleString()}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold
+                              ${
+                                tx.status.toLowerCase() === "success" ||
+                                tx.status.toLowerCase() === "completed"
+                                  ? "bg-green-100 text-green-700"
+                                  : tx.status.toLowerCase() === "pending"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                          >
+                            {tx.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-gray-500 whitespace-nowrap">
+                          {new Date(tx.date).toLocaleString("en-NG", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-3">
                 {transactions.slice(0, 5).map((tx, i) => (
-                  <tr
+                  <div
                     key={i}
-                    className="border-b hover:bg-gray-50 transition-colors"
+                    className="bg-gray-50 border rounded-lg p-4 shadow-sm"
                   >
-                    <td className="p-3 text-gray-800 font-medium">{tx.type}</td>
-                    <td className="p-3 text-gray-600">{tx.land || "N/A"}</td>
-                    <td className="p-3 text-gray-800">
-                      ₦{Number(tx.amount).toLocaleString()}
-                    </td>
-                    <td className="p-3">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-semibold text-gray-800">{tx.type}</span>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold
                           ${
-                            tx.status.toLowerCase() === "success" || 
-                              tx.status.toLowerCase() === "completed"
+                            tx.status.toLowerCase() === "success" ||
+                            tx.status.toLowerCase() === "completed"
                               ? "bg-green-100 text-green-700"
                               : tx.status.toLowerCase() === "pending"
                               ? "bg-yellow-100 text-yellow-700"
@@ -170,8 +203,14 @@ export default function Dashboard() {
                       >
                         {tx.status}
                       </span>
-                    </td>
-                    <td className="p-3 text-gray-500">
+                    </div>
+                    <p className="text-gray-600 text-sm mb-1">
+                      Land: {tx.land || "N/A"}
+                    </p>
+                    <p className="text-gray-800 text-sm mb-1">
+                      Amount: ₦{Number(tx.amount).toLocaleString()}
+                    </p>
+                    <p className="text-gray-500 text-xs">
                       {new Date(tx.date).toLocaleString("en-NG", {
                         year: "numeric",
                         month: "short",
@@ -179,15 +218,15 @@ export default function Dashboard() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                    </td>
-                  </tr>
+                    </p>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
-
       </main>
     </div>
   );
-}
+                }
+              
