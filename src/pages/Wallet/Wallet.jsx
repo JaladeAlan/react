@@ -15,7 +15,7 @@ export default function Wallet() {
 
   const navigate = useNavigate();
 
-  // Toast component (has access to navigate)
+  // Toast component for PIN not set
   const GoToSettingsToast = ({ message }) => (
     <div>
       <p>{message}</p>
@@ -31,7 +31,7 @@ export default function Wallet() {
     </div>
   );
 
-  // Fetch wallet data
+  // Fetch wallet and transactions
   const fetchWalletData = async () => {
     try {
       const [walletRes, txRes] = await Promise.all([
@@ -39,7 +39,7 @@ export default function Wallet() {
         api.get("/transactions/user"),
       ]);
 
-      setBalance(walletRes.data.user.balance || 0);
+      setBalance(walletRes.data.user.balance_kobo || 0);
 
       const filteredTx = (txRes.data.data || []).filter(
         (t) => t.type === "Deposit" || t.type === "Withdrawal"
@@ -66,8 +66,11 @@ export default function Wallet() {
     setLoading("deposit");
     try {
       const res = await api.post("/deposit", { amount });
+
       if (res.data.payment_url) {
-        toast.info("Redirecting to Paystack...");
+        toast.info(
+          `Redirecting to Paystack... Deposit: ₦${amount.toLocaleString()} + Fee: ₦${res.data.transaction_fee.toLocaleString()} = Total: ₦${res.data.total_amount.toLocaleString()}`
+        );
         window.location.href = res.data.payment_url;
       } else {
         toast.success(res.data.message || "Deposit initiated!");
@@ -81,59 +84,59 @@ export default function Wallet() {
   };
 
   // Withdraw handler
- const handleWithdraw = async (e) => {
-  e.preventDefault();
-  const amount = Number(withdrawAmount);
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    const amount = Number(withdrawAmount);
 
-  if (!amount || isNaN(amount) || amount < 1000)
-    return toast.error("Minimum withdrawal amount is ₦1,000");
-  if (!pin || pin.length !== 4)
-    return toast.error("PIN must be exactly 4 digits");
+    if (!amount || isNaN(amount) || amount < 1000)
+      return toast.error("Minimum withdrawal amount is ₦1,000");
+    if (!pin || pin.length !== 4)
+      return toast.error("PIN must be exactly 4 digits");
 
-  setLoading("withdraw");
-  try {
-    const res = await api.post("/withdraw", { amount, transaction_pin: pin });
-    toast.success(res.data.message || "Withdrawal successful!");
-    setWithdrawAmount("");
-    setPin("");
-    fetchWalletData();
-  } catch (error) {
-    // Check for "transaction pin not set"
-    if (
-      error.response &&
-      error.response.status === 403 &&
-      error.response.data?.message?.toLowerCase().includes("transaction pin not set")
-    ) {
-      toast.error(
-        <GoToSettingsToast message={error.response.data.message} />,
-        { autoClose: false }
-      );
+    setLoading("withdraw");
+    try {
+      const res = await api.post("/withdraw", { amount, transaction_pin: pin });
+      toast.success(res.data.message || "Withdrawal successful!");
+      setWithdrawAmount("");
+      setPin("");
+      fetchWalletData();
+    } catch (error) {
+      // Check for "transaction pin not set"
+      if (
+        error.response &&
+        error.response.status === 403 &&
+        error.response.data?.message?.toLowerCase().includes("transaction pin not set")
+      ) {
+        toast.error(
+          <GoToSettingsToast message={error.response.data.message} />,
+          { autoClose: false }
+        );
+      }
+      // Check for "insufficient funds"
+      else if (
+        error.response &&
+        (error.response.status === 400 || error.response.status === 422) &&
+        error.response.data?.message?.toLowerCase().includes("insufficient funds")
+      ) {
+        toast.error("Insufficient funds — please check your balance.");
+      }
+      // All other errors
+      else {
+        handleApiError(error, setError);
+      }
+    } finally {
+      setLoading(null);
     }
-    // Check for "insufficient funds"
-    else if (
-      error.response &&
-      (error.response.status === 400 || error.response.status === 422) &&
-      error.response.data?.message?.toLowerCase().includes("insufficient funds")
-    ) {
-      toast.error("Insufficient funds — please check your balance.");
-    }
-    // All other errors
-    else {
-      handleApiError(error, setError);
-    }
-  } finally {
-    setLoading(null);
-  }
-};
+  };
 
-  // Helper: Format date
+  // Format date helper
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleString("en-NG", {
       dateStyle: "medium",
       timeStyle: "short",
     });
 
-  // Helper: Status color
+  // Status color helper
   const getStatusColor = (status) => {
     if (!status) return "text-gray-400";
     const s = status.toLowerCase();
@@ -145,30 +148,24 @@ export default function Wallet() {
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4 space-y-10">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-        Wallet
-      </h1>
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Wallet</h1>
 
-      {/* Error Display */}
       {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm">
-          {error}
-        </div>
+        <div className="bg-red-100 text-red-700 p-3 rounded-md text-sm">{error}</div>
       )}
 
       {/* Balance */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6 text-center">
         <p className="text-gray-500">Available Balance</p>
         <h2 className="text-4xl font-bold text-green-600">
-          ₦{Number(balance).toLocaleString()}
+          ₦{Number(balance / 100).toLocaleString()}
         </h2>
       </div>
 
       {/* Deposit Section */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-green-600 mb-4">
-          Deposit Funds
-        </h2>
+        <h2 className="text-lg font-semibold text-green-600 mb-2">Deposit Funds</h2>
+        <p className="text-xs text-gray-400 mb-4">A 2% transaction fee will be added to your deposit.</p>
         <form onSubmit={handleDeposit} className="space-y-4">
           <input
             type="number"
@@ -190,39 +187,33 @@ export default function Wallet() {
 
       {/* Withdraw Section */}
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-red-600 mb-4">
-          Withdraw Funds
-        </h2>
-        
-         <p className="text-sm text-gray-500 mb-4">
-          Max withdrawable: ₦{Number(balance).toLocaleString()}
-         </p>
-        
+        <h2 className="text-lg font-semibold text-red-600 mb-2">Withdraw Funds</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Max withdrawable: ₦{Number(balance / 100).toLocaleString()}
+        </p>
         <form onSubmit={handleWithdraw} className="space-y-4">
-        <input
-          type="number"
-          min={1000}
-          max={balance}
-          value={withdrawAmount}
-          onChange={(e) => {
-            const val = Number(e.target.value);
-            if (val > balance) {
-              toast.warning("You cannot withdraw more than your available balance");
-              setWithdrawAmount(balance);
-            } else {
-              setWithdrawAmount(e.target.value);
-            }
-          }}
-          placeholder="₦1,000 minimum"
-          className="w-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none"
-        />
+          <input
+            type="number"
+            min={1000}
+            max={balance / 100}
+            value={withdrawAmount}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              if (val > balance / 100) {
+                toast.warning("You cannot withdraw more than your available balance");
+                setWithdrawAmount((balance / 100).toFixed(2));
+              } else {
+                setWithdrawAmount(e.target.value);
+              }
+            }}
+            placeholder="₦1,000 minimum"
+            className="w-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none"
+          />
           <input
             type="password"
             value={pin}
             maxLength={4}
-            onChange={(e) =>
-              setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="Enter 4-digit PIN"
             className="w-full border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none tracking-widest text-center"
           />
@@ -245,32 +236,39 @@ export default function Wallet() {
         {transactions.length === 0 ? (
           <p className="text-gray-500 text-sm">No deposit or withdrawal yet.</p>
         ) : (
-          <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-            {transactions.map((t, i) => (
-              <div
-                key={i}
-                className="py-3 flex justify-between items-start text-sm"
-              >
-                <div>
-                  <p
-                    className={`font-medium ${
-                      t.type === "Deposit" ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {t.type}
-                  </p>
-                  <p className="text-xs text-gray-500">{formatDate(t.date)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    ₦{Number(t.amount).toLocaleString()}
-                  </p>
-                  <p className={`text-xs font-medium ${getStatusColor(t.status)}`}>
-                    {t.status}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {transactions.map((t, i) => (
+                  <tr key={i} className="text-sm">
+                    <td className={`px-4 py-2 ${t.type === "Deposit" ? "text-green-600" : "text-red-600"} font-medium`}>{t.type}</td>
+                    <td className="px-4 py-2">{formatDate(t.date)}</td>
+                    <td className="px-4 py-2 text-right">
+                      ₦{(t.amount).toLocaleString()}
+                      {t.transaction_fee ? (
+                        <>
+                          {" + Fee: ₦"}
+                          {(t.transaction_fee).toLocaleString()}
+                          {" = Total: ₦"}
+                          {(t.total).toLocaleString()}
+                        </>
+                      ) : null}
+                    </td>
+                    <td className={`px-4 py-2 text-right font-medium ${getStatusColor(t.status)}`}>
+                      {t.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
