@@ -33,6 +33,9 @@ import Wallet from "./pages/Wallet/Wallet";
 import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 
+import CreateLand from "./pages/Admin/CreateLand";
+import AdminGuard from "./components/AdminGuard";
+
 // ------------------------------------------------------------
 // Axios interceptors with React Router
 // ------------------------------------------------------------
@@ -163,6 +166,18 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               />
+
+             <Route
+                path="/admin/lands/create"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <CreateLand />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
+
 
               {/* Fallback */}
               <Route
