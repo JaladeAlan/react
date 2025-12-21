@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../utils/api";
 import { purchaseLand, sellLand, getUserUnitsForLand } from "../../services/landService";
+import { getLandImage } from "../../utils/images";
 
 // Lightbox imports
 import Lightbox from "yet-another-react-lightbox";
@@ -27,8 +28,6 @@ export default function LandDetails() {
   // Lightbox state
   const [open, setOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
-
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://growth-estate.onrender.com";
 
   // Fetch land details
   const fetchLand = useCallback(async () => {
@@ -84,11 +83,9 @@ export default function LandDetails() {
         toast.success(`✅ Sold successfully! Reference: ${res.reference}`);
       }
 
-      // Re-fetch state
       await fetchLand();
       await fetchUserUnits();
 
-      // Reset modal inputs
       setModalType(null);
       setUnitsInput("");
       setTransactionPin("");
@@ -125,47 +122,38 @@ export default function LandDetails() {
       </div>
     );
 
- const images =
-  land.images?.map((img) => ({
-    src: img.image_url,
-  })) || [];
+  // Prepare images (always at least one placeholder)
+  const images = land.images?.length
+    ? land.images.map((img) => ({ src: img.image_url }))
+    : [{ src: getLandImage(land) }];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      {/* Toast */}
       <Toaster position="top-right" />
 
       <Link
-        to="/dashboard"
+        to="/lands"
         className="inline-block mb-6 text-blue-600 hover:underline"
       >
-        ← Back to Dashboard
+        ← Back to Lands
       </Link>
 
       <div className="bg-white shadow rounded-xl overflow-hidden">
         {/* IMAGE GALLERY */}
-        {images.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            {images.map((img, i) => (
-              <img
-                key={i}
-                src={img.src}
-                alt={`${land.title} ${i + 1}`}
-                onClick={() => {
-                  setPhotoIndex(i);
-                  setOpen(true);
-                }}
-                className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-              />
-            ))}
-          </div>
-        ) : (
-          <img
-            src="/no-image.jpg"
-            alt="No Image"
-            className="w-full h-64 object-cover"
-          />
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img.src}
+              alt={`${land.title} ${i + 1}`}
+              onClick={() => {
+                setPhotoIndex(i);
+                setOpen(true);
+              }}
+              className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+            />
+          ))}
+        </div>
 
         {/* LAND DETAILS */}
         <div className="p-6">

@@ -5,5 +5,5 @@ export const getLandImage = (land) => {
     return land.images[0].image_url;
   }
 
-  return `${API_BASE}/storage/land_images/placeholder.jpg`;
+return `${API_BASE}/images/placeholder.jpg`;
 };
