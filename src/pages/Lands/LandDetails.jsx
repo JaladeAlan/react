@@ -125,10 +125,10 @@ export default function LandDetails() {
       </div>
     );
 
-  const images =
-    land.images?.map((img) => ({
-      src: `${BASE_URL}/storage/${img.image_path}`,
-    })) || [];
+ const images =
+  land.images?.map((img) => ({
+    src: img.image_url,
+  })) || [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">

@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../utils/api";
+import { getLandImage } from "../../utils/images";
 
 export default function Lands() {
   const [lands, setLands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://growth-estate.onrender.com";
 
   useEffect(() => {
     const fetchLands = async () => {
@@ -15,12 +14,13 @@ export default function Lands() {
         const res = await api.get("/lands");
         setLands(res.data);
       } catch (err) {
-        console.error("Error fetching lands:", err);
+        console.error(err);
         setError("Failed to load lands. Please try again.");
       } finally {
         setLoading(false);
       }
     };
+
     fetchLands();
   }, []);
 
@@ -51,10 +51,7 @@ export default function Lands() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {lands.map((land) => {
-            const imageUrl =
-              land.images?.length > 0
-                ? `${BASE_URL}/storage/${land.images[0].image_path}`
-                : "/no-image.jpeg"; // fallback placeholder
+            const imageUrl = getLandImage(land);
 
             return (
               <div
@@ -64,26 +61,36 @@ export default function Lands() {
                 <img
                   src={imageUrl}
                   alt={land.title}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      `${import.meta.env.VITE_API_BASE_URL}/storage/land_images/placeholder.png`;
+                  }}
                   className="w-full h-48 object-cover"
-                  onError={(e) => (e.target.src = "/no-image.jpg")}
                 />
 
                 <div className="p-4 flex flex-col flex-grow">
                   <h3 className="text-lg font-semibold text-gray-800 mb-1">
                     {land.title}
                   </h3>
-                  <p className="text-gray-500 text-sm mb-2">{land.location}</p>
 
-                  <div className="text-sm text-gray-700 mb-3 flex flex-col gap-1">
+                  <p className="text-gray-500 text-sm mb-2">
+                    {land.location}
+                  </p>
+
+                  <div className="text-sm text-gray-700 mb-3 space-y-1">
                     <p>
-                      <span className="font-medium">Size:</span> {land.size} sq ft
+                      <span className="font-medium">Size:</span>{" "}
+                      {land.size} sq ft
                     </p>
                     <p>
                       <span className="font-medium">Price:</span> ₦
                       {Number(land.price_per_unit).toLocaleString()}
                     </p>
                     <p>
-                      <span className="font-medium">Available Units:</span>{" "}
+                      <span className="font-medium">
+                        Available Units:
+                      </span>{" "}
                       {land.available_units}
                     </p>
                   </div>
