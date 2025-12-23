@@ -34,6 +34,8 @@ import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 
 import CreateLand from "./pages/Admin/CreateLand";
+import EditLand from "./pages/Admin/EditLand";
+import AdminLands from "./pages/Admin/Land";
 import AdminGuard from "./components/AdminGuard";
 
 // ------------------------------------------------------------
@@ -168,11 +170,31 @@ function AnimatedRoutes() {
               />
 
              <Route
+                path="/admin/lands"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <AdminLands />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
+             <Route
                 path="/admin/lands/create"
                 element={
                   <ProtectedRoute>
                     <AdminGuard>
                       <CreateLand />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
+             <Route
+                path="/admin/lands/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <EditLand />
                     </AdminGuard>
                   </ProtectedRoute>
                 }
