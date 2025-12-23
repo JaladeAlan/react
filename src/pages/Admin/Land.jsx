@@ -24,7 +24,7 @@ export default function AdminLands() {
 
   const toggleLand = async (id, enabled) => {
     try {
-      await api.patch(`/admin/lands/${id}/${enabled ? "disable" : "enable"}`);
+      await api.patch(`/lands/admin/${id}/${enabled ? "disable" : "enable"}`);
       toast.success(`Land ${enabled ? "disabled" : "enabled"}`);
       fetchLands();
     } catch {
