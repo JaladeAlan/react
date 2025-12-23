@@ -40,7 +40,7 @@ export default function EditLand() {
       // Ensure each image has full URL
       const imagesWithUrl = (land.images || []).map(img => ({
         ...img,
-        image_url: img.image_url || img.image_path, // fallback if image_url missing
+        image_url: img.image_url || img.image_path,
       }));
 
       setExistingImages(imagesWithUrl);
@@ -88,23 +88,26 @@ export default function EditLand() {
       }
     });
 
-    // Append new images
-    newImages.forEach(file => data.append("images[]", file));
+    // Append new images (files)
+    newImages.forEach(file => data.append("images", file));
 
     // Append removed images
     removeImages.forEach(id => data.append("remove_images[]", id));
 
     try {
       setLoading(true);
-      await api.put(`/lands/admin/${id}`, data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api.post(`/lands/admin/${id}`, data);
 
       toast.success("Land updated successfully");
       navigate("/admin/lands");
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Update failed");
+      // Display validation errors if present
+      if (err.response?.data?.errors) {
+        Object.values(err.response.data.errors).flat().forEach(msg => toast.error(msg));
+      } else {
+        toast.error(err.response?.data?.message || "Update failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -115,7 +118,6 @@ export default function EditLand() {
       <h1 className="text-xl font-semibold mb-4">Edit Land</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
         <input
           name="title"
           value={form.title}
