@@ -24,44 +24,48 @@ export default function EditLand() {
 
   /** Fetch land data */
   useEffect(() => {
-    api.get(`/lands/${id}`).then(res => {
-      const land = res.data;
+    const fetchLand = async () => {
+      try {
+        const res = await api.get(`/lands/${id}`);
+        const land = res.data;
 
-      setForm({
-        title: land.title || "",
-        location: land.location || "",
-        description: land.description || "",
-        size: land.size !== null ? land.size.toString() : "",
-        price_per_unit: land.price_per_unit !== null ? land.price_per_unit.toString() : "",
-        total_units: land.total_units !== null ? land.total_units.toString() : "",
-        is_available: land.is_available ?? true,
-      });
+        setForm({
+          title: land.title || "",
+          location: land.location || "",
+          description: land.description || "",
+          size: land.size !== null ? land.size.toString() : "",
+          price_per_unit: land.price_per_unit !== null ? land.price_per_unit.toString() : "",
+          total_units: land.total_units !== null ? land.total_units.toString() : "",
+          is_available: land.is_available ?? true,
+        });
 
-      // Ensure each image has full URL
-      const imagesWithUrl = (land.images || []).map(img => ({
-        ...img,
-        image_url: img.image_url || img.image_path,
-      }));
+        const imagesWithUrl = (land.images || []).map(img => ({
+          ...img,
+          image_url: img.image_url || img.image_path,
+        }));
 
-      setExistingImages(imagesWithUrl);
-    });
+        setExistingImages(imagesWithUrl);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch land data.");
+      }
+    };
+
+    fetchLand();
   }, [id]);
 
-  /** Handle text / checkbox changes */
+  /** Handle input changes */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm({
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
-  /** Handle new image selection */
+  /** Handle new images */
   const handleImageChange = (e) => {
     setNewImages(Array.from(e.target.files));
   };
 
-  /** Mark existing image for removal */
+  /** Remove existing image */
   const removeExistingImage = (imgId) => {
     setRemoveImages(prev => [...prev, imgId]);
     setExistingImages(prev => prev.filter(img => img.id !== imgId));
@@ -73,36 +77,32 @@ export default function EditLand() {
 
     const data = new FormData();
 
-    // Append land fields with proper casting
+    // Append land fields
     Object.entries(form).forEach(([key, value]) => {
       if (value !== "" && value !== null) {
-        if (["size", "price_per_unit"].includes(key)) {
-          data.append(key, parseFloat(value));
-        } else if (["total_units"].includes(key)) {
-          data.append(key, parseInt(value));
-        } else if (key === "is_available") {
-          data.append(key, value ? 1 : 0);
-        } else {
-          data.append(key, value);
-        }
+        if (["size", "price_per_unit"].includes(key)) data.append(key, parseFloat(value));
+        else if (key === "total_units") data.append(key, parseInt(value));
+        else if (key === "is_available") data.append(key, value ? 1 : 0);
+        else data.append(key, value);
       }
     });
 
-    // Append new images (files)
-    newImages.forEach(file => data.append("images", file));
+    // Append new images properly as an array
+    newImages.forEach(file => data.append("images[]", file));
 
-    // Append removed images
+    // Append removed image IDs
     removeImages.forEach(id => data.append("remove_images[]", id));
 
     try {
       setLoading(true);
-      await api.post(`/lands/admin/${id}`, data);
+      await api.post(`/lands/admin/${id}`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       toast.success("Land updated successfully");
       navigate("/admin/lands");
     } catch (err) {
       console.error(err);
-      // Display validation errors if present
       if (err.response?.data?.errors) {
         Object.values(err.response.data.errors).flat().forEach(msg => toast.error(msg));
       } else {
@@ -116,7 +116,6 @@ export default function EditLand() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-xl font-semibold mb-4">Edit Land</h1>
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           name="title"
@@ -125,7 +124,6 @@ export default function EditLand() {
           placeholder="Title"
           className="w-full p-3 border rounded"
         />
-
         <input
           name="location"
           value={form.location}
@@ -133,7 +131,6 @@ export default function EditLand() {
           placeholder="Location"
           className="w-full p-3 border rounded"
         />
-
         <textarea
           name="description"
           value={form.description}
@@ -141,7 +138,6 @@ export default function EditLand() {
           placeholder="Description"
           className="w-full p-3 border rounded"
         />
-
         <input
           name="size"
           value={form.size}
@@ -149,7 +145,6 @@ export default function EditLand() {
           placeholder="Size"
           className="w-full p-3 border rounded"
         />
-
         <input
           name="price_per_unit"
           value={form.price_per_unit}
@@ -157,7 +152,6 @@ export default function EditLand() {
           placeholder="Price per unit"
           className="w-full p-3 border rounded"
         />
-
         <input
           name="total_units"
           value={form.total_units}
@@ -165,7 +159,6 @@ export default function EditLand() {
           placeholder="Total units"
           className="w-full p-3 border rounded"
         />
-
         <label className="flex items-center space-x-2">
           <input
             type="checkbox"

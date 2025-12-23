@@ -9,7 +9,7 @@ export default function AdminLands() {
 
   const fetchLands = async () => {
     try {
-      const res = await api.get("/lands");
+      const res = await api.get("/lands/admin/show");
       setLands(res.data);
     } catch {
       toast.error("Failed to load lands");
