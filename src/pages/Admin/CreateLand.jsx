@@ -63,64 +63,88 @@ export default function CreateLand() {
       <h1 className="text-2xl font-semibold mb-6">Create Land</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="title"
-          placeholder="Land Title"
-          className="w-full p-3 border rounded"
-          value={form.title}
-          onChange={handleChange}
-        />
+        {/* Title */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Land Title</label>
+          <input
+            name="title"
+            type="text"
+            className="w-full p-3 border rounded"
+            value={form.title}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input
-          name="location"
-          placeholder="Location"
-          className="w-full p-3 border rounded"
-          value={form.location}
-          onChange={handleChange}
-        />
+        {/* Location */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Location</label>
+          <input
+            name="location"
+            type="text"
+            className="w-full p-3 border rounded"
+            value={form.location}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input
-          name="size"
-          placeholder="Size (sqm)"
-          type="number"
-          className="w-full p-3 border rounded"
-          value={form.size}
-          onChange={handleChange}
-        />
+        {/* Size */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Size (sqm)</label>
+          <input
+            name="size"
+            type="number"
+            className="w-full p-3 border rounded"
+            value={form.size}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input
-          name="price_per_unit"
-          placeholder="Price per Unit"
-          type="number"
-          className="w-full p-3 border rounded"
-          value={form.price_per_unit}
-          onChange={handleChange}
-        />
+        {/* Price per Unit */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Price per Unit</label>
+          <input
+            name="price_per_unit"
+            type="number"
+            className="w-full p-3 border rounded"
+            value={form.price_per_unit}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input
-          name="total_units"
-          placeholder="Total Units"
-          type="number"
-          className="w-full p-3 border rounded"
-          value={form.total_units}
-          onChange={handleChange}
-        />
+        {/* Total Units */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Total Units</label>
+          <input
+            name="total_units"
+            type="number"
+            className="w-full p-3 border rounded"
+            value={form.total_units}
+            onChange={handleChange}
+          />
+        </div>
 
-        <textarea
-          name="description"
-          placeholder="Description"
-          rows="4"
-          className="w-full p-3 border rounded"
-          value={form.description}
-          onChange={handleChange}
-        />
+        {/* Description */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Description</label>
+          <textarea
+            name="description"
+            rows="4"
+            className="w-full p-3 border rounded"
+            value={form.description}
+            onChange={handleChange}
+          />
+        </div>
 
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleImageChange}
-        />
+        {/* Images */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">Images</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+        </div>
 
         <button
           disabled={loading}
