@@ -21,6 +21,7 @@ export default function EditLand() {
   const [newImages, setNewImages] = useState([]);
   const [removeImages, setRemoveImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [purchasedUnits, setPurchasedUnits] = useState(0); // track purchased units
 
   /** Fetch land data */
   useEffect(() => {
@@ -38,6 +39,8 @@ export default function EditLand() {
           total_units: land.total_units !== null ? land.total_units.toString() : "",
           is_available: land.is_available ?? true,
         });
+
+        setPurchasedUnits(land.purchased_units || 0); // set purchased units
 
         const imagesWithUrl = (land.images || []).map(img => ({
           ...img,
@@ -57,6 +60,21 @@ export default function EditLand() {
   /** Handle input changes */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Only allow digits for numeric fields
+    if (["size", "price_per_unit", "total_units"].includes(name)) {
+      if (!/^\d*$/.test(value)) return; // block non-digit input
+    }
+
+    // Prevent total_units from going below purchasedUnits
+    if (name === "total_units" && value !== "") {
+      const numericValue = parseInt(value);
+      if (numericValue < purchasedUnits) {
+        toast.error(`Total units cannot be less than ${purchasedUnits} purchased units.`);
+        return;
+      }
+    }
+
     setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
@@ -80,10 +98,13 @@ export default function EditLand() {
     // Append land fields
     Object.entries(form).forEach(([key, value]) => {
       if (value !== "" && value !== null) {
-        if (["size", "price_per_unit"].includes(key)) data.append(key, parseFloat(value));
-        else if (key === "total_units") data.append(key, parseInt(value));
-        else if (key === "is_available") data.append(key, value ? 1 : 0);
-        else data.append(key, value);
+        if (["size", "price_per_unit", "total_units"].includes(key)) {
+          data.append(key, parseInt(value));
+        } else if (key === "is_available") {
+          data.append(key, value ? 1 : 0);
+        } else {
+          data.append(key, value);
+        }
       }
     });
 
