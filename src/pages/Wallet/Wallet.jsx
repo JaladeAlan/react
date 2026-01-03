@@ -439,9 +439,9 @@ Total: ₦${res.data.total_amount.toLocaleString()}`
             </div>
           ) : (
             <div className="space-y-3">
-              {transactions.map((t) => (
+              {transactions.map((t, index) => (
                 <div
-                  key={t.id || t.reference}
+                 key={t.id ?? t.reference ?? `${t.type}-${t.date}-${index}`}
                   className="flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-4">
