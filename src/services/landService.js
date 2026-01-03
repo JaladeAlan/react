@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/lands`
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/lands`
   : "https://growth-estate.onrender.com/api/lands";
 
 const getAuthHeaders = () => ({

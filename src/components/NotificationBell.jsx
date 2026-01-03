@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Bell } from "lucide-react"; // icon
+import { useEffect, useRef, useState } from "react";
+import { Bell } from "lucide-react";
 import {
   fetchNotifications,
   fetchUnreadNotifications,
@@ -11,6 +11,9 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const dropdownRef = useRef(null); 
+  const buttonRef = useRef(null);   
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -36,10 +39,30 @@ export default function NotificationBell() {
     loadNotifications();
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="relative">
       {/* Bell Icon */}
       <button
+        ref={buttonRef} 
         onClick={() => setOpen(!open)}
         className="relative p-2 rounded-full hover:bg-gray-100"
       >
@@ -53,7 +76,10 @@ export default function NotificationBell() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg border z-50">
+        <div
+          ref={dropdownRef} 
+          className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg border z-50"
+        >
           <div className="flex justify-between items-center p-3 border-b">
             <span className="font-semibold">Notifications</span>
             <button
