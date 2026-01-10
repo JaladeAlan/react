@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import handleApiError from "../../utils/handleApiError";
 import FormError from "../../components/FormError"; 
+import { Eye, EyeOff } from "lucide-react"; 
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); 
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -21,7 +24,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setFieldErrors({});
-    setLoading(true); 
+    setLoading(true);
 
     try {
       await login(form.email, form.password);
@@ -29,7 +32,7 @@ export default function Login() {
     } catch (err) {
       handleApiError(err, setError, setFieldErrors);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
@@ -45,6 +48,7 @@ export default function Login() {
           <p className="text-red-500 text-sm mb-3 text-center">{error}</p>
         )}
 
+        {/* EMAIL */}
         <div className="mb-3">
           <input
             name="email"
@@ -56,21 +60,33 @@ export default function Login() {
               fieldErrors.email ? "border-red-500" : ""
             }`}
           />
-          <FormError error={fieldErrors.email} /> 
+          <FormError error={fieldErrors.email} />
         </div>
 
-        <div className="mb-3">
+        {/* PASSWORD */}
+        <div className="mb-3 relative">
           <input
             name="password"
             value={form.password}
             onChange={handleChange}
             placeholder="Password"
-            type="password"
-            className={`border w-full px-3 py-2 rounded ${
+            type={showPassword ? "text" : "password"} 
+            className={`border w-full px-3 py-2 pr-10 rounded ${
               fieldErrors.password ? "border-red-500" : ""
             }`}
           />
-          <FormError error={fieldErrors.password} /> 
+
+          {/* TOGGLE BUTTON */}
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+
+          <FormError error={fieldErrors.password} />
         </div>
 
         <p className="text-right text-sm mb-4">
@@ -86,7 +102,9 @@ export default function Login() {
           type="submit"
           disabled={loading}
           className={`w-full py-2 rounded text-white flex items-center justify-center ${
-            loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+            loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
           {loading && (
@@ -103,12 +121,12 @@ export default function Login() {
                 r="10"
                 stroke="currentColor"
                 strokeWidth="4"
-              ></circle>
+              />
               <path
                 className="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-              ></path>
+              />
             </svg>
           )}
           {loading ? "Logging in..." : "Login"}
