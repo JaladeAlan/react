@@ -1,27 +1,45 @@
-const API_URL = import.meta.env.VITE_API_BASE_URL || "https://growth-estate.onrender.com";
+import api from "../utils/api";
 
-const getAuthHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
+let unreadCache = null;
+let allCache = null;
+let unreadFetched = false;
+let allFetched = false;
 
-// Get all notifications
-export async function fetchNotifications() {
-  const res = await fetch(`${API_URL}/api/notifications`, { headers: getAuthHeaders() });
-  return res.json();
+// All notifications
+export async function fetchNotifications(force = false) {
+  if (allFetched && allCache && !force) return allCache;
+
+  const res = await api.get("/notifications");
+  allCache = res.data;
+  allFetched = true;
+
+  return allCache;
 }
 
-// Get only unread notifications
-export async function fetchUnreadNotifications() {
-  const res = await fetch(`${API_URL}/api/notifications/unread`, { headers: getAuthHeaders() });
-  return res.json();
+// Unread notifications
+export async function fetchUnreadNotifications(force = false) {
+  if (unreadFetched && unreadCache && !force) return unreadCache;
+
+  const res = await api.get("/notifications/unread");
+  unreadCache = res.data;
+  unreadFetched = true;
+
+  return unreadCache;
 }
 
-// Mark all as read
+// Mark read
 export async function markAllNotificationsRead() {
-  const res = await fetch(`${API_URL}/api/notifications/read`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-  });
-  return res.json();
+  await api.post("/notifications/read");
+
+  // invalidate cache
+  resetNotificationCache();
+  return true;
+}
+
+// Reset (used on logout / auth failure)
+export function resetNotificationCache() {
+  unreadCache = null;
+  allCache = null;
+  unreadFetched = false;
+  allFetched = false;
 }

@@ -1,15 +1,26 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+} from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../utils/api";
+import { resetNotificationCache } from "../services/notificationService";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Prevent double execution (React 18 StrictMode)
+  const hasCheckedAuth = useRef(false);
 
   const checkAuth = async () => {
     const token = localStorage.getItem("token");
@@ -20,20 +31,23 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
     try {
       const res = await api.get("/me");
-      setUser(res.data.user || res.data);
+      setUser(res.data.user ?? res.data);
     } catch (err) {
-      console.error("Auth check failed:", err.response?.data || err.message);
-      localStorage.removeItem("token");
-      delete api.defaults.headers.common["Authorization"];
-      setUser(null);
-      toast.error("Session expired. Please log in again.");
+      console.error("Auth check failed:", err);
 
-      // Save current page before redirect
+      // reset notifications on auth failure
+      resetNotificationCache();
+
+      localStorage.removeItem("token");
+      delete api.defaults.headers.common.Authorization;
+      setUser(null);
+
       localStorage.setItem("redirectAfterLogin", location.pathname);
+      toast.error("Session expired. Please log in again.");
       navigate("/login", { replace: true });
     } finally {
       setLoading(false);
@@ -41,6 +55,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
     checkAuth();
   }, []);
 
@@ -49,58 +65,53 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post("/login", { email, password });
 
       const token =
-        res?.data?.token ||
-        res?.data?.data?.token ||
-        res?.data?.access_token ||
-        (typeof res?.data?.data === "string"
-          ? JSON.parse(res.data.data)?.token
-          : null);
+        res.data?.token ||
+        res.data?.access_token ||
+        res.data?.data?.token;
 
-      if (!token) throw new Error("No token returned from backend");
+      if (!token) throw new Error("Token not returned");
 
       localStorage.setItem("token", token);
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
-      await checkAuth();
+      // Prefer backend user
+      if (res.data?.user) {
+        setUser(res.data.user);
+      } else {
+        await checkAuth();
+      }
 
       toast.success("Login successful!");
 
-      // Go to saved page or dashboard
       const redirectPath =
         localStorage.getItem("redirectAfterLogin") || "/dashboard";
       localStorage.removeItem("redirectAfterLogin");
+
       navigate(redirectPath, { replace: true });
     } catch (err) {
-      console.error("Login error:", err.response?.data || err.message);
+      console.error("Login error:", err);
       toast.error("Login failed. Please check your credentials.");
       throw err;
     }
   };
 
-  const logout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (err) {
-      console.warn("Logout error:", err);
-    }
+  const logout = () => {
+    api.post("/logout").catch(() => {});
+
+    // reset notifications on logout
+    resetNotificationCache();
 
     localStorage.removeItem("token");
-    delete api.defaults.headers.common["Authorization"];
-    setUser(null);
+    delete api.defaults.headers.common.Authorization;
 
+    setUser(null);
     toast.info("Logged out successfully!");
     navigate("/login", { replace: true });
   };
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        loading,
-        checkAuth,
-      }}
+      value={{ user, loading, login, logout, checkAuth }}
     >
       {children}
     </AuthContext.Provider>
