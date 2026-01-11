@@ -2,44 +2,48 @@ import api from "../utils/api";
 
 let unreadCache = null;
 let allCache = null;
-let unreadFetched = false;
-let allFetched = false;
+let unreadPromise = null;
+let allPromise = null;
 
-// All notifications
-export async function fetchNotifications(force = false) {
-  if (allFetched && allCache && !force) return allCache;
+// Fetch all notifications
+export function fetchNotifications(force = false) {
+  if (allCache && !force) return Promise.resolve(allCache);
+  if (allPromise && !force) return allPromise;
 
-  const res = await api.get("/notifications");
-  allCache = res.data;
-  allFetched = true;
+  allPromise = api.get("/notifications").then((res) => {
+    allCache = res.data;
+    allPromise = null;
+    return allCache;
+  });
 
-  return allCache;
+  return allPromise;
 }
 
-// Unread notifications
-export async function fetchUnreadNotifications(force = false) {
-  if (unreadFetched && unreadCache && !force) return unreadCache;
+// Fetch unread notifications
+export function fetchUnreadNotifications(force = false) {
+  if (unreadCache && !force) return Promise.resolve(unreadCache);
+  if (unreadPromise && !force) return unreadPromise;
 
-  const res = await api.get("/notifications/unread");
-  unreadCache = res.data;
-  unreadFetched = true;
+  unreadPromise = api.get("/notifications/unread").then((res) => {
+    unreadCache = res.data;
+    unreadPromise = null;
+    return unreadCache;
+  });
 
-  return unreadCache;
+  return unreadPromise;
 }
 
-// Mark read
+// Mark all read
 export async function markAllNotificationsRead() {
   await api.post("/notifications/read");
-
-  // invalidate cache
   resetNotificationCache();
   return true;
 }
 
-// Reset (used on logout / auth failure)
+// Reset cache
 export function resetNotificationCache() {
   unreadCache = null;
   allCache = null;
-  unreadFetched = false;
-  allFetched = false;
+  unreadPromise = null;
+  allPromise = null;
 }
