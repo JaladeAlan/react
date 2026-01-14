@@ -12,11 +12,22 @@ export default function CreateLand() {
     size: "",
     price_per_unit: "",
     total_units: "",
+    lat: "",
+    lng: "",
     description: "",
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Allow numeric + decimals for coords & numbers
+    if (
+      ["size", "price_per_unit", "total_units", "lat", "lng"].includes(name)
+    ) {
+      if (!/^-?\d*\.?\d*$/.test(value)) return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleImageChange = (e) => {
@@ -31,7 +42,13 @@ export default function CreateLand() {
     }
 
     const data = new FormData();
-    Object.keys(form).forEach((key) => data.append(key, form[key]));
+
+    Object.entries(form).forEach(([key, value]) => {
+      if (value !== "") {
+        data.append(key, value);
+      }
+    });
+
     images.forEach((img) => data.append("images[]", img));
 
     try {
@@ -42,12 +59,15 @@ export default function CreateLand() {
       });
 
       toast.success("Land created successfully");
+
       setForm({
         title: "",
         location: "",
         size: "",
         price_per_unit: "",
         total_units: "",
+        lat: "",
+        lng: "",
         description: "",
       });
       setImages([]);
@@ -63,88 +83,73 @@ export default function CreateLand() {
       <h1 className="text-2xl font-semibold mb-6">Create Land</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Title */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Land Title</label>
+        <input
+          name="title"
+          placeholder="Land Title"
+          value={form.title}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
+
+        <input
+          name="location"
+          placeholder="Location"
+          value={form.location}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
+
+        <div className="grid grid-cols-2 gap-4">
           <input
-            name="title"
-            type="text"
-            className="w-full p-3 border rounded"
-            value={form.title}
+            name="lat"
+            placeholder="Latitude (e.g. 6.524379)"
+            value={form.lat}
             onChange={handleChange}
+            className="w-full p-3 border rounded"
+          />
+          <input
+            name="lng"
+            placeholder="Longitude (e.g. 3.379206)"
+            value={form.lng}
+            onChange={handleChange}
+            className="w-full p-3 border rounded"
           />
         </div>
 
-        {/* Location */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Location</label>
-          <input
-            name="location"
-            type="text"
-            className="w-full p-3 border rounded"
-            value={form.location}
-            onChange={handleChange}
-          />
-        </div>
+        <input
+          name="size"
+          placeholder="Size (sqm)"
+          value={form.size}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
 
-        {/* Size */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Size (sqm)</label>
-          <input
-            name="size"
-            type="number"
-            className="w-full p-3 border rounded"
-            value={form.size}
-            onChange={handleChange}
-          />
-        </div>
+        <input
+          name="price_per_unit"
+          placeholder="Price per unit"
+          value={form.price_per_unit}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
 
-        {/* Price per Unit */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Price per Unit</label>
-          <input
-            name="price_per_unit"
-            type="number"
-            className="w-full p-3 border rounded"
-            value={form.price_per_unit}
-            onChange={handleChange}
-          />
-        </div>
+        <input
+          name="total_units"
+          placeholder="Total units"
+          value={form.total_units}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
 
-        {/* Total Units */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Total Units</label>
-          <input
-            name="total_units"
-            type="number"
-            className="w-full p-3 border rounded"
-            value={form.total_units}
-            onChange={handleChange}
-          />
-        </div>
+        <textarea
+          name="description"
+          placeholder="Description"
+          rows="4"
+          value={form.description}
+          onChange={handleChange}
+          className="w-full p-3 border rounded"
+        />
 
-        {/* Description */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Description</label>
-          <textarea
-            name="description"
-            rows="4"
-            className="w-full p-3 border rounded"
-            value={form.description}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Images */}
-        <div>
-          <label className="block mb-1 font-medium text-gray-700">Images</label>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageChange}
-          />
-        </div>
+        <input type="file" multiple accept="image/*" onChange={handleImageChange} />
 
         <button
           disabled={loading}

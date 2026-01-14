@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../utils/api";
 
 /* ---------------- Helpers ---------------- */
@@ -33,9 +34,11 @@ const formatDate = (date) =>
       })
     : "-";
 
-/* ---------------- Component ---------------- */
+/* ---------------- Dashboard Component ---------------- */
 export default function Dashboard() {
   const { user, loading: loadingUser } = useAuth();
+  const navigate = useNavigate();
+
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -44,7 +47,8 @@ export default function Dashboard() {
   const cache = useRef({ stats: null, transactions: null });
 
   useEffect(() => {
-    if (!user) return;
+    const token = localStorage.getItem("token");
+    if (!user || !token) return; 
 
     // Use cached data if available
     if (cache.current.stats) {
@@ -68,7 +72,7 @@ export default function Dashboard() {
           api.get("/transactions/user", { signal: controller.signal }),
         ]);
 
-        const statsData = statsRes.data?.data;
+        const statsData = statsRes.data?.data || {};
         const txData = txRes.data?.data || [];
 
         cache.current = { stats: statsData, transactions: txData };
@@ -76,7 +80,18 @@ export default function Dashboard() {
         setStats(statsData);
         setTransactions(txData);
       } catch (err) {
-        if (err.name !== "CanceledError") console.error("Dashboard fetch error:", err);
+        if (err.name === "CanceledError") return; 
+
+        console.error("Dashboard fetch error:", err);
+
+        if (err.response?.status === 401) {
+          // Session expired
+          localStorage.removeItem("token");
+          toast.error("Session expired. Please log in again.");
+          navigate("/login", { replace: true });
+        } else {
+          toast.error("Failed to load dashboard data.");
+        }
       } finally {
         setLoadingStats(false);
         setLoadingTx(false);
@@ -86,7 +101,7 @@ export default function Dashboard() {
     fetchData();
 
     return () => controller.abort();
-  }, [user]);
+  }, [user, navigate]);
 
   if (loadingUser) {
     return (
