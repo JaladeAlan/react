@@ -124,7 +124,7 @@ export default function LandDetails() {
 
   // Prepare images (always at least one placeholder)
   const images = land.images?.length
-    ? land.images.map((img) => ({ src: img.image_url }))
+    ? land.images.map((img) => ({ src: img.url }))
     : [{ src: getLandImage(land) }];
 
   return (
