@@ -33,7 +33,7 @@ export default function LandDetails() {
   const fetchLand = useCallback(async () => {
     try {
       const res = await api.get(`/lands/${id}`);
-      setLand(res.data);
+      setLand(res.data.data);
     } catch (err) {
       console.error("Error fetching land:", err);
       setError("Unable to load land details.");

@@ -13,4 +13,8 @@ h1, h2, h3 {
 a {
   @apply text-indigo-600 hover:text-indigo-700 transition;
 }
- 
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  opacity: 0.6;
+}
