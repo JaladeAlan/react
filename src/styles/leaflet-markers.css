@@ -30,3 +30,12 @@
     opacity: 0;
   }
 }
+
+.map-legend {
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.map-legend i {
+  vertical-align: middle;
+}

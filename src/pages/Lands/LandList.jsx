@@ -14,7 +14,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
-import "../../styles/leaflet-markers.css"; // external CSS for markers
+import "../../styles/leaflet-markers.css";
 
 /* ===================== MAP FLY CONTROLLER ===================== */
 function MapFlyController({ target }) {
@@ -80,6 +80,28 @@ function createMarkerIcon({ price, units, active }) {
   });
 }
 
+/* ===================== CUSTOM ATTRIBUTION ===================== */
+function CustomAttribution() {
+  const map = useMap();
+
+  useEffect(() => {
+    const attribution = L.control({ position: "bottomright" });
+    attribution.onAdd = function () {
+      const div = L.DomUtil.create("div", "leaflet-control-attribution");
+      div.innerHTML =
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+      return div;
+    };
+    attribution.addTo(map);
+
+    return () => {
+      attribution.remove();
+    };
+  }, [map]);
+
+  return null;
+}
+
 /* ===================== MAIN COMPONENT ===================== */
 export default function LandList() {
   const [lands, setLands] = useState([]);
@@ -92,7 +114,7 @@ export default function LandList() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const markersRef = useRef({});
-  const mapSectionRef = useRef(null); // ref for scrolling to map
+  const mapSectionRef = useRef(null);
 
   /* ===================== FETCH LANDS ===================== */
   useEffect(() => {
@@ -154,8 +176,7 @@ export default function LandList() {
       </div>
     );
 
-  /* ===================== NAVBAR OFFSET ===================== */
-  const NAVBAR_HEIGHT = 80; // adjust to your navbar height
+  const NAVBAR_HEIGHT = 80;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-8 space-y-10">
@@ -181,12 +202,15 @@ export default function LandList() {
           <MapContainer
             whenCreated={bindViewport}
             zoom={8}
-            className={`w-full ${
-              isFullScreen ? "h-screen" : "min-h-[450px]"
-            }`}
-            attributionControl={false}
+            className={`w-full ${isFullScreen ? "h-screen" : "min-h-[450px]"}`}
+            attributionControl={false} 
           >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="" 
+            />
+
+            <CustomAttribution />
 
             <MarkerClusterGroup chunkedLoading>
               {landsWithCoords.map((land) => {
@@ -218,10 +242,7 @@ export default function LandList() {
                         <strong>{land.title}</strong>
                         <p>{land.location}</p>
                         <p>
-                          ₦
-                          {Number(
-                            land.price_per_unit
-                          ).toLocaleString()}
+                          ₦{Number(land.price_per_unit).toLocaleString()}
                         </p>
                         <Link
                           to={`/lands/${land.id}`}
@@ -239,7 +260,6 @@ export default function LandList() {
             <FitBounds
               points={landsWithCoords.map((l) => [+l.lat, +l.lng])}
             />
-
             <MapFlyController target={flyTarget} />
           </MapContainer>
         </div>
@@ -270,41 +290,27 @@ export default function LandList() {
 
             <div className="p-4 flex flex-col flex-grow">
               <h3 className="text-lg font-semibold">{land.title}</h3>
-              <p className="text-sm text-gray-500 mb-2">
-                {land.location}
-              </p>
+              <p className="text-sm text-gray-500 mb-2">{land.location}</p>
 
               <div className="text-sm space-y-1 mb-4">
                 <p>Size: {land.size} sq ft</p>
-                <p>
-                  Price: ₦
-                  {Number(
-                    land.price_per_unit
-                  ).toLocaleString()}
-                </p>
+                <p>Price: ₦{Number(land.price_per_unit).toLocaleString()}</p>
                 <p>Units: {land.available_units}</p>
               </div>
 
               <button
                 onClick={() => {
-                  // Scroll to map (with navbar offset)
                   if (mapSectionRef.current) {
                     const y =
                       mapSectionRef.current.getBoundingClientRect().top +
                       window.pageYOffset -
                       NAVBAR_HEIGHT;
-
                     window.scrollTo({ top: y, behavior: "smooth" });
                   }
 
-                  // Set active + fly to marker
                   setActiveLandId(land.id);
-                  setFlyTarget({
-                    lat: +land.lat,
-                    lng: +land.lng,
-                  });
+                  setFlyTarget({ lat: +land.lat, lng: +land.lng });
 
-                  // Open popup after fly
                   setTimeout(() => {
                     markersRef.current[land.id]?.openPopup();
                   }, 700);
