@@ -14,6 +14,7 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
+import "../../styles/leaflet-markers.css"; // external CSS for markers
 
 /* ===================== MAP FLY CONTROLLER ===================== */
 function MapFlyController({ target }) {
@@ -79,7 +80,7 @@ function createMarkerIcon({ price, units, active }) {
   });
 }
 
-/* ===================== MAIN ===================== */
+/* ===================== MAIN COMPONENT ===================== */
 export default function LandList() {
   const [lands, setLands] = useState([]);
   const [visibleLands, setVisibleLands] = useState([]);
@@ -91,8 +92,9 @@ export default function LandList() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const markersRef = useRef({});
+  const mapSectionRef = useRef(null); // ref for scrolling to map
 
-  /* ===================== FETCH ===================== */
+  /* ===================== FETCH LANDS ===================== */
   useEffect(() => {
     (async () => {
       try {
@@ -110,7 +112,7 @@ export default function LandList() {
     })();
   }, []);
 
-  /* ===================== ESC ===================== */
+  /* ===================== ESC TO EXIT FULLSCREEN ===================== */
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && setIsFullScreen(false);
     window.addEventListener("keydown", esc);
@@ -152,6 +154,9 @@ export default function LandList() {
       </div>
     );
 
+  /* ===================== NAVBAR OFFSET ===================== */
+  const NAVBAR_HEIGHT = 80; // adjust to your navbar height
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-8 space-y-10">
       <h2 className="text-2xl font-bold text-gray-800">Available Lands</h2>
@@ -159,6 +164,7 @@ export default function LandList() {
       {/* ===================== MAP ===================== */}
       {landsWithCoords.length > 0 && (
         <div
+          ref={mapSectionRef}
           className={`relative transition-all ${
             isFullScreen
               ? "fixed inset-0 z-[9999] bg-white"
@@ -281,12 +287,24 @@ export default function LandList() {
 
               <button
                 onClick={() => {
+                  // Scroll to map (with navbar offset)
+                  if (mapSectionRef.current) {
+                    const y =
+                      mapSectionRef.current.getBoundingClientRect().top +
+                      window.pageYOffset -
+                      NAVBAR_HEIGHT;
+
+                    window.scrollTo({ top: y, behavior: "smooth" });
+                  }
+
+                  // Set active + fly to marker
                   setActiveLandId(land.id);
                   setFlyTarget({
                     lat: +land.lat,
                     lng: +land.lng,
                   });
 
+                  // Open popup after fly
                   setTimeout(() => {
                     markersRef.current[land.id]?.openPopup();
                   }, 700);
