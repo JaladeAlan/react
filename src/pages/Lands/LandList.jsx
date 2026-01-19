@@ -9,6 +9,7 @@ import {
   Marker,
   Popup,
   useMap,
+  LayersControl,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -42,6 +43,39 @@ function FitBounds({ points }) {
     map.fitBounds(points, { padding: [50, 50] });
     done.current = true;
   }, [points, map]);
+
+  return null;
+}
+
+/* ===================== MAP LEGEND ===================== */
+function MapLegend() {
+  const map = useMap();
+
+  useEffect(() => {
+    const legend = L.control({ position: "bottomright" });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "map-legend bg-white p-3 rounded shadow text-sm");
+      div.innerHTML = `
+        <strong>Price per Unit</strong><br/>
+        <i style="background:#22c55e;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦0 - ₦200,000<br/>
+        <i style="background:#facc15;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦200,001 - ₦500,000<br/>
+        <i style="background:#ef4444;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦500,001+<br/>
+        <br/>
+        <strong>Opacity = Units Available</strong><br/>
+        <div class="flex flex-col space-y-1 mt-1">
+          <span style="background:#000;width:16px;height:8px;opacity:0.6;display:inline-block;border-radius:2px;"></span> 1-10 units<br/>
+          <span style="background:#000;width:16px;height:8px;opacity:0.8;display:inline-block;border-radius:2px;"></span> 11-50 units<br/>
+          <span style="background:#000;width:16px;height:8px;opacity:1;display:inline-block;border-radius:2px;"></span> 51+ units
+        </div>
+      `;
+      return div;
+    };
+
+    legend.addTo(map);
+
+    return () => legend.remove();
+  }, [map]);
 
   return null;
 }
@@ -85,7 +119,7 @@ function CustomAttribution() {
   const map = useMap();
 
   useEffect(() => {
-    const attribution = L.control({ position: "bottomright" });
+    const attribution = L.control({ position: "bottomleft" });
     attribution.onAdd = function () {
       const div = L.DomUtil.create("div", "leaflet-control-attribution");
       div.innerHTML =
@@ -94,9 +128,7 @@ function CustomAttribution() {
     };
     attribution.addTo(map);
 
-    return () => {
-      attribution.remove();
-    };
+    return () => attribution.remove();
   }, [map]);
 
   return null;
@@ -121,9 +153,7 @@ export default function LandList() {
     (async () => {
       try {
         const res = await api.get("/lands");
-        const list = Array.isArray(res.data?.data)
-          ? res.data.data
-          : res.data;
+        const list = Array.isArray(res.data?.data) ? res.data.data : res.data;
         setLands(list);
         setVisibleLands(list);
       } catch {
@@ -142,22 +172,14 @@ export default function LandList() {
   }, []);
 
   /* ===================== FILTER COORDS ===================== */
-  const landsWithCoords = useMemo(
-    () => lands.filter((l) => l.lat && l.lng),
-    [lands]
-  );
+  const landsWithCoords = useMemo(() => lands.filter((l) => l.lat && l.lng), [lands]);
 
   /* ===================== VIEWPORT FILTER ===================== */
   const bindViewport = (map) => {
     const update = () => {
       const bounds = map.getBounds();
-      setVisibleLands(
-        landsWithCoords.filter((l) =>
-          bounds.contains([+l.lat, +l.lng])
-        )
-      );
+      setVisibleLands(landsWithCoords.filter((l) => bounds.contains([+l.lat, +l.lng])));
     };
-
     map.on("moveend", update);
     update();
   };
@@ -187,9 +209,7 @@ export default function LandList() {
         <div
           ref={mapSectionRef}
           className={`relative transition-all ${
-            isFullScreen
-              ? "fixed inset-0 z-[9999] bg-white"
-              : "rounded-xl overflow-hidden shadow"
+            isFullScreen ? "fixed inset-0 z-[9999] bg-white" : "rounded-xl overflow-hidden shadow"
           }`}
         >
           <button
@@ -203,20 +223,37 @@ export default function LandList() {
             whenCreated={bindViewport}
             zoom={8}
             className={`w-full ${isFullScreen ? "h-screen" : "min-h-[450px]"}`}
-            attributionControl={false} 
+            attributionControl={false}
           >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="" 
-            />
+            <LayersControl position="topright">
+              <LayersControl.BaseLayer checked name="Street">
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution=""
+                />
+              </LayersControl.BaseLayer>
+
+              <LayersControl.BaseLayer name="Satellite">
+                <TileLayer
+                  url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                  subdomains={["mt0", "mt1", "mt2", "mt3"]}
+                  attribution="&copy; Google"
+                />
+              </LayersControl.BaseLayer>
+
+              <LayersControl.BaseLayer name="Terrain">
+                <TileLayer
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenTopoMap contributors"
+                />
+              </LayersControl.BaseLayer>
+            </LayersControl>
 
             <CustomAttribution />
 
             <MarkerClusterGroup chunkedLoading>
               {landsWithCoords.map((land) => {
-                const isActive =
-                  land.id === activeLandId ||
-                  land.id === hoverLandId;
+                const isActive = land.id === activeLandId || land.id === hoverLandId;
 
                 return (
                   <Marker
@@ -233,17 +270,14 @@ export default function LandList() {
                       mouseout: () => setHoverLandId(null),
                     }}
                     ref={(marker) => {
-                      if (marker)
-                        markersRef.current[land.id] = marker;
+                      if (marker) markersRef.current[land.id] = marker;
                     }}
                   >
                     <Popup>
                       <div className="space-y-1 text-sm">
                         <strong>{land.title}</strong>
                         <p>{land.location}</p>
-                        <p>
-                          ₦{Number(land.price_per_unit).toLocaleString()}
-                        </p>
+                        <p>₦{Number(land.price_per_unit).toLocaleString()}</p>
                         <Link
                           to={`/lands/${land.id}`}
                           className="block mt-2 bg-green-600 text-white rounded px-3 py-1 text-center"
@@ -257,10 +291,9 @@ export default function LandList() {
               })}
             </MarkerClusterGroup>
 
-            <FitBounds
-              points={landsWithCoords.map((l) => [+l.lat, +l.lng])}
-            />
+            <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
             <MapFlyController target={flyTarget} />
+            {/* <MapLegend /> */}
           </MapContainer>
         </div>
       )}
@@ -273,17 +306,14 @@ export default function LandList() {
             onMouseEnter={() => setHoverLandId(land.id)}
             onMouseLeave={() => setHoverLandId(null)}
             className={`bg-white rounded-xl shadow flex flex-col transition ${
-              hoverLandId === land.id
-                ? "ring-2 ring-blue-500 shadow-lg"
-                : "hover:shadow-lg"
+              hoverLandId === land.id ? "ring-2 ring-blue-500 shadow-lg" : "hover:shadow-lg"
             }`}
           >
             <img
               src={getLandImage(land)}
               alt={land.title}
               onError={(e) =>
-                (e.currentTarget.src =
-                  "/storage/land_images/placeholder.png")
+                (e.currentTarget.src = "/storage/land_images/placeholder.png")
               }
               className="w-full h-48 object-cover rounded-t-xl"
             />
