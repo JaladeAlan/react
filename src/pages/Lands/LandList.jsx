@@ -47,34 +47,21 @@ function FitBounds({ points }) {
   return null;
 }
 
-/* ===================== MAP LEGEND ===================== */
-function MapLegend() {
+/* ===================== CUSTOM ATTRIBUTION ===================== */
+function CustomAttribution() {
   const map = useMap();
 
   useEffect(() => {
-    const legend = L.control({ position: "bottomright" });
-
-    legend.onAdd = function () {
-      const div = L.DomUtil.create("div", "map-legend bg-white p-3 rounded shadow text-sm");
-      div.innerHTML = `
-        <strong>Price per Unit</strong><br/>
-        <i style="background:#22c55e;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦0 - ₦200,000<br/>
-        <i style="background:#facc15;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦200,001 - ₦500,000<br/>
-        <i style="background:#ef4444;width:16px;height:16px;display:inline-block;margin-right:6px;border-radius:50%;"></i> ₦500,001+<br/>
-        <br/>
-        <strong>Opacity = Units Available</strong><br/>
-        <div class="flex flex-col space-y-1 mt-1">
-          <span style="background:#000;width:16px;height:8px;opacity:0.6;display:inline-block;border-radius:2px;"></span> 1-10 units<br/>
-          <span style="background:#000;width:16px;height:8px;opacity:0.8;display:inline-block;border-radius:2px;"></span> 11-50 units<br/>
-          <span style="background:#000;width:16px;height:8px;opacity:1;display:inline-block;border-radius:2px;"></span> 51+ units
-        </div>
-      `;
+    const attribution = L.control({ position: "bottomleft" });
+    attribution.onAdd = function () {
+      const div = L.DomUtil.create("div", "leaflet-control-attribution");
+      div.innerHTML =
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
       return div;
     };
+    attribution.addTo(map);
 
-    legend.addTo(map);
-
-    return () => legend.remove();
+    return () => attribution.remove();
   }, [map]);
 
   return null;
@@ -114,26 +101,6 @@ function createMarkerIcon({ price, units, active }) {
   });
 }
 
-/* ===================== CUSTOM ATTRIBUTION ===================== */
-function CustomAttribution() {
-  const map = useMap();
-
-  useEffect(() => {
-    const attribution = L.control({ position: "bottomleft" });
-    attribution.onAdd = function () {
-      const div = L.DomUtil.create("div", "leaflet-control-attribution");
-      div.innerHTML =
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-      return div;
-    };
-    attribution.addTo(map);
-
-    return () => attribution.remove();
-  }, [map]);
-
-  return null;
-}
-
 /* ===================== MAIN COMPONENT ===================== */
 export default function LandList() {
   const [lands, setLands] = useState([]);
@@ -144,9 +111,12 @@ export default function LandList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const markersRef = useRef({});
+  const mapRef = useRef(null);
   const mapSectionRef = useRef(null);
+  const heatLayerRef = useRef(null);
 
   /* ===================== FETCH LANDS ===================== */
   useEffect(() => {
@@ -172,17 +142,52 @@ export default function LandList() {
   }, []);
 
   /* ===================== FILTER COORDS ===================== */
-  const landsWithCoords = useMemo(() => lands.filter((l) => l.lat && l.lng), [lands]);
+  const landsWithCoords = useMemo(
+    () => lands.filter((l) => l.lat && l.lng),
+    [lands]
+  );
 
   /* ===================== VIEWPORT FILTER ===================== */
   const bindViewport = (map) => {
+    mapRef.current = map;
+
     const update = () => {
       const bounds = map.getBounds();
-      setVisibleLands(landsWithCoords.filter((l) => bounds.contains([+l.lat, +l.lng])));
+      setVisibleLands(
+        landsWithCoords.filter((l) => bounds.contains([+l.lat, +l.lng]))
+      );
     };
     map.on("moveend", update);
     update();
   };
+
+  /* ===================== HEATMAP LAYER ===================== */
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    import("leaflet.heat").then((module) => {
+      // Remove existing heat layer
+      if (heatLayerRef.current) {
+        mapRef.current.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+
+      // Add heat layer only if toggled on
+      if (showHeatmap && visibleLands.length > 0) {
+        const heatPoints = visibleLands.map((l) => [
+          +l.lat,
+          +l.lng,
+          Math.min(+l.available_units / 50, 1),
+        ]);
+
+        heatLayerRef.current = module.heatLayer(heatPoints, {
+          radius: 25,
+          blur: 15,
+          maxZoom: 17,
+        }).addTo(mapRef.current);
+      }
+    });
+  }, [showHeatmap, visibleLands]);
 
   if (loading)
     return (
@@ -212,12 +217,24 @@ export default function LandList() {
             isFullScreen ? "fixed inset-0 z-[9999] bg-white" : "rounded-xl overflow-hidden shadow"
           }`}
         >
-          <button
-            onClick={() => setIsFullScreen((v) => !v)}
-            className="absolute top-3 right-3 z-[1000] bg-white px-3 py-1 rounded shadow text-sm"
-          >
-            {isFullScreen ? "✕ Close Map" : "⛶ Full Screen"}
-          </button>
+          <div className="absolute top-3 right-3 z-[1000] flex space-x-2">
+            <button
+              onClick={() => setIsFullScreen((v) => !v)}
+              className="bg-white px-3 py-1 rounded shadow text-sm"
+            >
+              {isFullScreen ? "✕ Close Map" : "⛶ Full Screen"}
+            </button>
+
+            {/* HEATMAP TOGGLE BUTTON */}
+            <button
+              onClick={() => setShowHeatmap((v) => !v)}
+              className={`bg-white px-3 py-1 rounded shadow text-sm ${
+                showHeatmap ? "bg-red-500 text-white" : ""
+              }`}
+            >
+              {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+            </button>
+          </div>
 
           <MapContainer
             whenCreated={bindViewport}
@@ -227,10 +244,7 @@ export default function LandList() {
           >
             <LayersControl position="topright">
               <LayersControl.BaseLayer checked name="Street">
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution=""
-                />
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               </LayersControl.BaseLayer>
 
               <LayersControl.BaseLayer name="Satellite">
@@ -251,49 +265,52 @@ export default function LandList() {
 
             <CustomAttribution />
 
-            <MarkerClusterGroup chunkedLoading>
-              {landsWithCoords.map((land) => {
-                const isActive = land.id === activeLandId || land.id === hoverLandId;
+            {/* SHOW CLUSTERS ONLY WHEN HEATMAP IS OFF */}
+            {!showHeatmap && (
+              <MarkerClusterGroup chunkedLoading>
+                {landsWithCoords.map((land) => {
+                  const isActive =
+                    land.id === activeLandId || land.id === hoverLandId;
 
-                return (
-                  <Marker
-                    key={land.id}
-                    position={[+land.lat, +land.lng]}
-                    icon={createMarkerIcon({
-                      price: land.price_per_unit,
-                      units: land.available_units,
-                      active: isActive,
-                    })}
-                    eventHandlers={{
-                      click: () => setActiveLandId(land.id),
-                      mouseover: () => setHoverLandId(land.id),
-                      mouseout: () => setHoverLandId(null),
-                    }}
-                    ref={(marker) => {
-                      if (marker) markersRef.current[land.id] = marker;
-                    }}
-                  >
-                    <Popup>
-                      <div className="space-y-1 text-sm">
-                        <strong>{land.title}</strong>
-                        <p>{land.location}</p>
-                        <p>₦{Number(land.price_per_unit).toLocaleString()}</p>
-                        <Link
-                          to={`/lands/${land.id}`}
-                          className="block mt-2 bg-green-600 text-white rounded px-3 py-1 text-center"
-                        >
-                          Invest Now
-                        </Link>
-                      </div>
-                    </Popup>
-                  </Marker>
-                );
-              })}
-            </MarkerClusterGroup>
+                  return (
+                    <Marker
+                      key={land.id}
+                      position={[+land.lat, +land.lng]}
+                      icon={createMarkerIcon({
+                        price: land.price_per_unit,
+                        units: land.available_units,
+                        active: isActive,
+                      })}
+                      eventHandlers={{
+                        click: () => setActiveLandId(land.id),
+                        mouseover: () => setHoverLandId(land.id),
+                        mouseout: () => setHoverLandId(null),
+                      }}
+                      ref={(marker) => {
+                        if (marker) markersRef.current[land.id] = marker;
+                      }}
+                    >
+                      <Popup>
+                        <div className="space-y-1 text-sm">
+                          <strong>{land.title}</strong>
+                          <p>{land.location}</p>
+                          <p>₦{Number(land.price_per_unit).toLocaleString()}</p>
+                          <Link
+                            to={`/lands/${land.id}`}
+                            className="block mt-2 bg-green-600 text-white rounded px-3 py-1 text-center"
+                          >
+                            Invest Now
+                          </Link>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MarkerClusterGroup>
+            )}
 
             <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
             <MapFlyController target={flyTarget} />
-            {/* <MapLegend /> */}
           </MapContainer>
         </div>
       )}
