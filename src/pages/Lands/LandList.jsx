@@ -18,6 +18,9 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import "../../styles/leaflet-markers.css";
 
+/* ===================== MONEY ===================== */
+const koboToNaira = (kobo) => Number(kobo) / 100;
+
 /* ===================== MAP HELPERS ===================== */
 function MapFlyController({ target }) {
   const map = useMap();
@@ -57,9 +60,9 @@ function MapInvalidate({ isFullScreen }) {
 }
 
 /* ===================== MARKER HELPERS ===================== */
-function getPriceColor(price) {
-  if (price < 200_000) return "#22c55e";
-  if (price < 500_000) return "#facc15";
+function getPriceColor(priceNaira) {
+  if (priceNaira < 200_000) return "#22c55e";
+  if (priceNaira < 500_000) return "#facc15";
   return "#ef4444";
 }
 
@@ -69,7 +72,9 @@ function getUnitOpacity(units) {
   return 0.6;
 }
 
-function createMarkerIcon({ price, units, active }) {
+function createMarkerIcon({ priceKobo, units, active }) {
+  const priceNaira = koboToNaira(priceKobo);
+
   return L.divIcon({
     className: "",
     iconSize: [36, 36],
@@ -80,7 +85,7 @@ function createMarkerIcon({ price, units, active }) {
         <div
           class="marker-dot"
           style="
-            background:${getPriceColor(price)};
+            background:${getPriceColor(priceNaira)};
             opacity:${getUnitOpacity(units)};
             border:2px solid white;
           "
@@ -104,7 +109,6 @@ export default function LandList() {
 
   const mapRef = useRef(null);
   const heatLayerRef = useRef(null);
-  const markersRef = useRef({});
   const mapSectionRef = useRef(null);
 
   /* ===================== FETCH ===================== */
@@ -248,7 +252,7 @@ export default function LandList() {
                     key={land.id}
                     position={[+land.lat, +land.lng]}
                     icon={createMarkerIcon({
-                      price: land.price_per_unit,
+                      priceKobo: land.price_per_unit_kobo,
                       units: land.available_units,
                       active,
                     })}
@@ -256,9 +260,15 @@ export default function LandList() {
                     <Popup>
                       <strong>{land.title}</strong>
                       <br />
-                      ₦{Number(land.price_per_unit).toLocaleString()}
+                      ₦
+                      {koboToNaira(
+                        land.price_per_unit_kobo
+                      ).toLocaleString()}
                       <br />
-                      <Link to={`/lands/${land.id}`} className="text-blue-600">
+                      <Link
+                        to={`/lands/${land.id}`}
+                        className="text-blue-600"
+                      >
                         View
                       </Link>
                     </Popup>
@@ -292,7 +302,10 @@ export default function LandList() {
               <h3 className="font-semibold text-lg">{land.title}</h3>
               <p className="text-sm text-gray-500">{land.location}</p>
               <p className="mt-2 font-medium">
-                ₦{Number(land.price_per_unit).toLocaleString()}
+                ₦
+                {koboToNaira(
+                  land.price_per_unit_kobo
+                ).toLocaleString()}
               </p>
               <button
                 onClick={() => {
