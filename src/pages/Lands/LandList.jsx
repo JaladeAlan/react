@@ -15,15 +15,15 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
 import "../../styles/leaflet-markers.css";
 
-/* ===================== MAP FLY CONTROLLER ===================== */
+/* ===================== MAP HELPERS ===================== */
 function MapFlyController({ target }) {
   const map = useMap();
 
   useEffect(() => {
     if (!target) return;
-
     map.flyTo([target.lat, target.lng], 16, {
       animate: true,
       duration: 1.2,
@@ -33,7 +33,6 @@ function MapFlyController({ target }) {
   return null;
 }
 
-/* ===================== FIT BOUNDS ===================== */
 function FitBounds({ points }) {
   const map = useMap();
   const done = useRef(false);
@@ -47,22 +46,12 @@ function FitBounds({ points }) {
   return null;
 }
 
-/* ===================== CUSTOM ATTRIBUTION ===================== */
-function CustomAttribution() {
+function MapInvalidate({ isFullScreen }) {
   const map = useMap();
 
   useEffect(() => {
-    const attribution = L.control({ position: "bottomleft" });
-    attribution.onAdd = function () {
-      const div = L.DomUtil.create("div", "leaflet-control-attribution");
-      div.innerHTML =
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-      return div;
-    };
-    attribution.addTo(map);
-
-    return () => attribution.remove();
-  }, [map]);
+    setTimeout(() => map.invalidateSize(), 300);
+  }, [isFullScreen, map]);
 
   return null;
 }
@@ -101,7 +90,7 @@ function createMarkerIcon({ price, units, active }) {
   });
 }
 
-/* ===================== MAIN COMPONENT ===================== */
+/* ===================== MAIN ===================== */
 export default function LandList() {
   const [lands, setLands] = useState([]);
   const [visibleLands, setVisibleLands] = useState([]);
@@ -113,19 +102,18 @@ export default function LandList() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
-  const markersRef = useRef({});
   const mapRef = useRef(null);
-  const mapSectionRef = useRef(null);
   const heatLayerRef = useRef(null);
+  const markersRef = useRef({});
+  const mapSectionRef = useRef(null);
 
-  /* ===================== FETCH LANDS ===================== */
+  /* ===================== FETCH ===================== */
   useEffect(() => {
     (async () => {
       try {
         const res = await api.get("/lands");
-        const list = Array.isArray(res.data?.data) ? res.data.data : res.data;
-        setLands(list);
-        setVisibleLands(list);
+        setLands(res.data.data);
+        setVisibleLands(res.data.data);
       } catch {
         setError("Failed to load lands");
       } finally {
@@ -134,65 +122,55 @@ export default function LandList() {
     })();
   }, []);
 
-  /* ===================== ESC TO EXIT FULLSCREEN ===================== */
-  useEffect(() => {
-    const esc = (e) => e.key === "Escape" && setIsFullScreen(false);
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, []);
-
-  /* ===================== FILTER COORDS ===================== */
   const landsWithCoords = useMemo(
     () => lands.filter((l) => l.lat && l.lng),
     [lands]
   );
 
-  /* ===================== VIEWPORT FILTER ===================== */
-  const bindViewport = (map) => {
-    mapRef.current = map;
+  /* ===================== VIEWPORT ===================== */
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
 
     const update = () => {
       const bounds = map.getBounds();
       setVisibleLands(
-        landsWithCoords.filter((l) => bounds.contains([+l.lat, +l.lng]))
+        landsWithCoords.filter((l) =>
+          bounds.contains([+l.lat, +l.lng])
+        )
       );
     };
+
     map.on("moveend", update);
     update();
-  };
+    return () => map.off("moveend", update);
+  }, [landsWithCoords]);
 
-  /* ===================== HEATMAP LAYER ===================== */
+  /* ===================== HEATMAP ===================== */
   useEffect(() => {
     if (!mapRef.current) return;
 
-    import("leaflet.heat").then((module) => {
-      // Remove existing heat layer
-      if (heatLayerRef.current) {
-        mapRef.current.removeLayer(heatLayerRef.current);
-        heatLayerRef.current = null;
-      }
+    if (heatLayerRef.current) {
+      mapRef.current.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
 
-      // Add heat layer only if toggled on
-      if (showHeatmap && visibleLands.length > 0) {
-        const heatPoints = visibleLands.map((l) => [
+    if (showHeatmap && visibleLands.length) {
+      heatLayerRef.current = L.heatLayer(
+        visibleLands.map((l) => [
           +l.lat,
           +l.lng,
-          Math.min(+l.available_units / 50, 1),
-        ]);
-
-        heatLayerRef.current = module.heatLayer(heatPoints, {
-          radius: 25,
-          blur: 15,
-          maxZoom: 17,
-        }).addTo(mapRef.current);
-      }
-    });
+          Math.max(0.25, Math.min(l.heat ?? 0, 1)),
+        ]),
+        { radius: 45, blur: 25, maxZoom: 17 }
+      ).addTo(mapRef.current);
+    }
   }, [showHeatmap, visibleLands]);
 
   if (loading)
     return (
-      <div className="h-screen flex items-center justify-center text-gray-500">
-        Loading lands...
+      <div className="h-screen flex items-center justify-center">
+        Loading…
       </div>
     );
 
@@ -203,117 +181,98 @@ export default function LandList() {
       </div>
     );
 
-  const NAVBAR_HEIGHT = 80;
+  const defaultCenter = landsWithCoords.length
+    ? [+landsWithCoords[0].lat, +landsWithCoords[0].lng]
+    : [9.082, 8.6753];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-8 space-y-10">
-      <h2 className="text-2xl font-bold text-gray-800">Available Lands</h2>
-
+    <div className="space-y-10 px-4 sm:px-8">
       {/* ===================== MAP ===================== */}
-      {landsWithCoords.length > 0 && (
-        <div
-          ref={mapSectionRef}
-          className={`relative transition-all ${
-            isFullScreen ? "fixed inset-0 z-[9999] bg-white" : "rounded-xl overflow-hidden shadow"
-          }`}
-        >
-          <div className="absolute top-3 right-3 z-[1000] flex space-x-2">
-            <button
-              onClick={() => setIsFullScreen((v) => !v)}
-              className="bg-white px-3 py-1 rounded shadow text-sm"
-            >
-              {isFullScreen ? "✕ Close Map" : "⛶ Full Screen"}
-            </button>
-
-            {/* HEATMAP TOGGLE BUTTON */}
-            <button
-              onClick={() => setShowHeatmap((v) => !v)}
-              className={`bg-white px-3 py-1 rounded shadow text-sm ${
-                showHeatmap ? "bg-red-500 text-white" : ""
-              }`}
-            >
-              {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
-            </button>
-          </div>
-
-          <MapContainer
-            whenCreated={bindViewport}
-            zoom={8}
-            className={`w-full ${isFullScreen ? "h-screen" : "min-h-[450px]"}`}
-            attributionControl={false}
+      <div
+        ref={mapSectionRef}
+        className={`relative ${
+          isFullScreen
+            ? "fixed inset-0 z-[9999] bg-white"
+            : "rounded-xl overflow-hidden shadow"
+        }`}
+      >
+        {/* TOP BUTTONS */}
+        <div className="absolute top-3 right-3 z-[2000] flex gap-2">
+          <button
+            onClick={() => setIsFullScreen((v) => !v)}
+            className="bg-white px-3 py-1 rounded shadow"
           >
-            <LayersControl position="topright">
-              <LayersControl.BaseLayer checked name="Street">
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              </LayersControl.BaseLayer>
+            {isFullScreen ? "✕ Close" : "⛶ Fullscreen"}
+          </button>
 
-              <LayersControl.BaseLayer name="Satellite">
-                <TileLayer
-                  url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-                  subdomains={["mt0", "mt1", "mt2", "mt3"]}
-                  attribution="&copy; Google"
-                />
-              </LayersControl.BaseLayer>
-
-              <LayersControl.BaseLayer name="Terrain">
-                <TileLayer
-                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                  attribution="&copy; OpenTopoMap contributors"
-                />
-              </LayersControl.BaseLayer>
-            </LayersControl>
-
-            <CustomAttribution />
-
-            {/* SHOW CLUSTERS ONLY WHEN HEATMAP IS OFF */}
-            {!showHeatmap && (
-              <MarkerClusterGroup chunkedLoading>
-                {landsWithCoords.map((land) => {
-                  const isActive =
-                    land.id === activeLandId || land.id === hoverLandId;
-
-                  return (
-                    <Marker
-                      key={land.id}
-                      position={[+land.lat, +land.lng]}
-                      icon={createMarkerIcon({
-                        price: land.price_per_unit,
-                        units: land.available_units,
-                        active: isActive,
-                      })}
-                      eventHandlers={{
-                        click: () => setActiveLandId(land.id),
-                        mouseover: () => setHoverLandId(land.id),
-                        mouseout: () => setHoverLandId(null),
-                      }}
-                      ref={(marker) => {
-                        if (marker) markersRef.current[land.id] = marker;
-                      }}
-                    >
-                      <Popup>
-                        <div className="space-y-1 text-sm">
-                          <strong>{land.title}</strong>
-                          <p>{land.location}</p>
-                          <p>₦{Number(land.price_per_unit).toLocaleString()}</p>
-                          <Link
-                            to={`/lands/${land.id}`}
-                            className="block mt-2 bg-green-600 text-white rounded px-3 py-1 text-center"
-                          >
-                            Invest Now
-                          </Link>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-              </MarkerClusterGroup>
-            )}
-
-            <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
-            <MapFlyController target={flyTarget} />
-          </MapContainer>
+          <button
+            onClick={() => setShowHeatmap((v) => !v)}
+            className={`px-3 py-1 rounded shadow ${
+              showHeatmap ? "bg-red-600 text-white" : "bg-white"
+            }`}
+          >
+            🔥 {showHeatmap ? "Hide" : "Heatmap"}
+          </button>
         </div>
-      )}
+
+        <MapContainer
+          whenCreated={(map) => (mapRef.current = map)}
+          center={defaultCenter}
+          zoom={8}
+          className={isFullScreen ? "h-screen w-full" : "h-[500px] w-full"}
+          attributionControl={false}
+        >
+          <LayersControl position="topleft">
+            <LayersControl.BaseLayer checked name="Street">
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Satellite">
+              <TileLayer
+                url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                subdomains={["mt0", "mt1", "mt2", "mt3"]}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Terrain">
+              <TileLayer url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" />
+            </LayersControl.BaseLayer>
+          </LayersControl>
+
+          {!showHeatmap && (
+            <MarkerClusterGroup>
+              {landsWithCoords.map((land) => {
+                const active =
+                  land.id === activeLandId || land.id === hoverLandId;
+
+                return (
+                  <Marker
+                    key={land.id}
+                    position={[+land.lat, +land.lng]}
+                    icon={createMarkerIcon({
+                      price: land.price_per_unit,
+                      units: land.available_units,
+                      active,
+                    })}
+                  >
+                    <Popup>
+                      <strong>{land.title}</strong>
+                      <br />
+                      ₦{Number(land.price_per_unit).toLocaleString()}
+                      <br />
+                      <Link to={`/lands/${land.id}`} className="text-blue-600">
+                        View
+                      </Link>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MarkerClusterGroup>
+          )}
+
+          <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
+          <MapFlyController target={flyTarget} />
+          <MapInvalidate isFullScreen={isFullScreen} />
+        </MapContainer>
+      </div>
 
       {/* ===================== CARDS ===================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -322,47 +281,35 @@ export default function LandList() {
             key={land.id}
             onMouseEnter={() => setHoverLandId(land.id)}
             onMouseLeave={() => setHoverLandId(null)}
-            className={`bg-white rounded-xl shadow flex flex-col transition ${
-              hoverLandId === land.id ? "ring-2 ring-blue-500 shadow-lg" : "hover:shadow-lg"
-            }`}
+            className="bg-white rounded-xl shadow hover:shadow-lg transition"
           >
             <img
               src={getLandImage(land)}
               alt={land.title}
-              onError={(e) =>
-                (e.currentTarget.src = "/storage/land_images/placeholder.png")
-              }
-              className="w-full h-48 object-cover rounded-t-xl"
+              className="h-48 w-full object-cover rounded-t-xl"
             />
-
-            <div className="p-4 flex flex-col flex-grow">
-              <h3 className="text-lg font-semibold">{land.title}</h3>
-              <p className="text-sm text-gray-500 mb-2">{land.location}</p>
-
-              <div className="text-sm space-y-1 mb-4">
-                <p>Size: {land.size} sq ft</p>
-                <p>Price: ₦{Number(land.price_per_unit).toLocaleString()}</p>
-                <p>Units: {land.available_units}</p>
-              </div>
-
+            <div className="p-4">
+              <h3 className="font-semibold text-lg">{land.title}</h3>
+              <p className="text-sm text-gray-500">{land.location}</p>
+              <p className="mt-2 font-medium">
+                ₦{Number(land.price_per_unit).toLocaleString()}
+              </p>
               <button
                 onClick={() => {
-                  if (mapSectionRef.current) {
-                    const y =
-                      mapSectionRef.current.getBoundingClientRect().top +
-                      window.pageYOffset -
-                      NAVBAR_HEIGHT;
-                    window.scrollTo({ top: y, behavior: "smooth" });
-                  }
-
-                  setActiveLandId(land.id);
-                  setFlyTarget({ lat: +land.lat, lng: +land.lng });
+                  mapSectionRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
 
                   setTimeout(() => {
-                    markersRef.current[land.id]?.openPopup();
-                  }, 700);
+                    setActiveLandId(land.id);
+                    setFlyTarget({
+                      lat: +land.lat,
+                      lng: +land.lng,
+                    });
+                  }, 400);
                 }}
-                className="mt-auto bg-blue-600 text-white rounded-lg py-2 hover:bg-blue-700 transition"
+                className="mt-3 w-full bg-blue-600 text-white py-2 rounded"
               >
                 View on Map
               </button>
