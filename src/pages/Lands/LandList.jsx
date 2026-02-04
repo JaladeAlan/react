@@ -10,6 +10,7 @@ import {
   Popup,
   useMap,
   LayersControl,
+  AttributionControl,
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -131,7 +132,7 @@ export default function LandList() {
     [lands]
   );
 
-  /* ===================== VIEWPORT ===================== */
+  /* ===================== VIEWPORT FILTER ===================== */
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
@@ -147,6 +148,7 @@ export default function LandList() {
 
     map.on("moveend", update);
     update();
+
     return () => map.off("moveend", update);
   }, [landsWithCoords]);
 
@@ -220,24 +222,36 @@ export default function LandList() {
         </div>
 
         <MapContainer
-          whenCreated={(map) => (mapRef.current = map)}
+          attributionControl={false} 
+          whenCreated={(map) => {
+            mapRef.current = map;
+          }}
           center={defaultCenter}
           zoom={8}
           className={isFullScreen ? "h-screen w-full" : "h-[500px] w-full"}
-          attributionControl={false}
         >
+          <AttributionControl prefix={false} />
+
           <LayersControl position="topleft">
             <LayersControl.BaseLayer checked name="Street">
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Satellite">
               <TileLayer
-                url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-                subdomains={["mt0", "mt1", "mt2", "mt3"]}
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
               />
             </LayersControl.BaseLayer>
+
+            <LayersControl.BaseLayer name="Satellite">
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution="&copy; Esri, Maxar, Earthstar Geographics"
+              />
+            </LayersControl.BaseLayer>
+
             <LayersControl.BaseLayer name="Terrain">
-              <TileLayer url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png" />
+              <TileLayer
+                url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenTopoMap contributors"
+              />
             </LayersControl.BaseLayer>
           </LayersControl>
 
