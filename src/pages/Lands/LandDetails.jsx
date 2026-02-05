@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import api from "../../utils/api";
 import {
   purchaseLand,
@@ -18,7 +18,6 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 import toast, { Toaster } from "react-hot-toast";
 
 /* ================= MONEY HELPERS ================= */
-
 const koboToNaira = (kobo) => Number(kobo) / 100;
 
 const formatNaira = (kobo) =>
@@ -30,27 +29,30 @@ const formatNaira = (kobo) =>
   });
 
 /* ================= COMPONENT ================= */
-
 export default function LandDetails() {
   const { id } = useParams();
+  const location = useLocation();
 
   const [land, setLand] = useState(null);
   const [userUnits, setUserUnits] = useState(0);
+  const [user, setUser] = useState(null); // store user info
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [modalType, setModalType] = useState(null);
   const [unitsInput, setUnitsInput] = useState("");
   const [transactionPin, setTransactionPin] = useState("");
-  const [modalError, setModalError] = useState("");
+  const [modalError, setModalError] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Dedicated PIN-not-set modal
+  const [pinNotSet, setPinNotSet] = useState(false);
 
   // Lightbox
   const [open, setOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
   /* ================= DATA ================= */
-
   const fetchLand = useCallback(async () => {
     try {
       const res = await api.get(`/lands/${id}`);
@@ -71,13 +73,26 @@ export default function LandDetails() {
     } catch {}
   }, [id]);
 
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await api.get("/me");
+      setUser(res.data.user);
+
+      if (!res.data.user.transaction_pin) {
+        setPinNotSet(true); // show modal immediately if PIN not set
+      }
+    } catch (err) {
+      console.error("Unable to fetch user info", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchLand();
     fetchUserUnits();
-  }, [fetchLand, fetchUserUnits]);
+    fetchUser();
+  }, [fetchLand, fetchUserUnits, fetchUser]);
 
   /* ================= ACTION ================= */
-
   const handleAction = async () => {
     const units = Number(unitsInput);
 
@@ -92,10 +107,11 @@ export default function LandDetails() {
     }
 
     setModalLoading(true);
-    setModalError("");
+    setModalError(null);
 
     try {
       let res;
+
       if (modalType === "purchase") {
         res = await purchaseLand(id, units, transactionPin);
         toast.success(`Purchase successful! Ref: ${res.reference}`);
@@ -111,17 +127,23 @@ export default function LandDetails() {
       setUnitsInput("");
       setTransactionPin("");
     } catch (err) {
-      const msg =
-        err.response?.data?.message || "Transaction failed. Try again.";
-      setModalError(msg);
-      toast.error(msg);
+      const apiMessage = err.response?.data?.message || err.message;
+
+      // fallback PIN-not-set handling
+      if (apiMessage?.toLowerCase().includes("pin not set")) {
+        setPinNotSet(true);
+        return;
+      }
+
+      const fallback = "Transaction failed. Try again.";
+      setModalError(apiMessage || fallback);
+      toast.error(apiMessage || fallback);
     } finally {
       setModalLoading(false);
     }
   };
 
   /* ================= STATES ================= */
-
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -144,7 +166,6 @@ export default function LandDetails() {
     );
 
   /* ================= IMAGES ================= */
-
   const images = land.images?.length
     ? land.images.map((img) => ({ src: img.url }))
     : [{ src: getLandImage(land) }];
@@ -154,7 +175,6 @@ export default function LandDetails() {
     : 0;
 
   /* ================= RENDER ================= */
-
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <Toaster position="top-right" />
@@ -186,11 +206,22 @@ export default function LandDetails() {
           <p className="text-gray-600">{land.location}</p>
 
           <div className="mt-4 space-y-1 text-gray-700">
-            <p><strong>Size:</strong> {land.size} sq ft</p>
-            <p><strong>Price per unit:</strong> {formatNaira(land.price_per_unit_kobo)}</p>
-            <p><strong>Available Units:</strong> {land.available_units}</p>
-            <p><strong>Total Units:</strong> {land.total_units}</p>
-            <p><strong>Your Units:</strong> {userUnits}</p>
+            <p>
+              <strong>Size:</strong> {land.size} sq ft
+            </p>
+            <p>
+              <strong>Price per unit:</strong>{" "}
+              {formatNaira(land.price_per_unit_kobo)}
+            </p>
+            <p>
+              <strong>Available Units:</strong> {land.available_units}
+            </p>
+            <p>
+              <strong>Total Units:</strong> {land.total_units}
+            </p>
+            <p>
+              <strong>Your Units:</strong> {userUnits}
+            </p>
           </div>
 
           <p className="mt-5 text-gray-700">
@@ -200,7 +231,10 @@ export default function LandDetails() {
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => setModalType("purchase")}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+              disabled={!user?.transaction_pin}
+              className={`bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 ${
+                !user?.transaction_pin ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               Purchase Units
             </button>
@@ -208,7 +242,10 @@ export default function LandDetails() {
             {userUnits > 0 && (
               <button
                 onClick={() => setModalType("sell")}
-                className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600"
+                disabled={!user?.transaction_pin}
+                className={`bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 ${
+                  !user?.transaction_pin ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 Sell Units
               </button>
@@ -228,7 +265,7 @@ export default function LandDetails() {
         />
       )}
 
-      {/* Modal */}
+      {/* Purchase/Sell Modal */}
       {modalType && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-96">
@@ -266,7 +303,7 @@ export default function LandDetails() {
             )}
 
             {modalError && (
-              <p className="text-red-600 text-sm mb-3">{modalError}</p>
+              <div className="text-red-600 text-sm mb-3">{modalError}</div>
             )}
 
             <div className="flex justify-end gap-3">
@@ -281,14 +318,40 @@ export default function LandDetails() {
                 onClick={handleAction}
                 disabled={modalLoading}
                 className={`px-4 py-2 rounded text-white ${
-                  modalType === "purchase"
-                    ? "bg-green-600"
-                    : "bg-yellow-500"
+                  modalType === "purchase" ? "bg-green-600" : "bg-yellow-500"
                 }`}
               >
                 {modalLoading ? "Processing..." : "Confirm"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PIN Not Set Modal */}
+      {pinNotSet && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-96">
+            <h2 className="text-lg font-semibold mb-4">Transaction PIN Not Set</h2>
+
+            <p className="text-gray-700 mb-4">
+              You need to set a transaction PIN before you can perform this action.
+            </p>
+
+            <Link
+              to="/settings"
+              state={{ returnTo: location.pathname }}
+              className="block text-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-3"
+            >
+              Set Transaction PIN
+            </Link>
+
+            <button
+              onClick={() => setPinNotSet(false)}
+              className="w-full text-gray-700 px-4 py-2 border rounded hover:bg-gray-100"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
