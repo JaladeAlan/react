@@ -1,10 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../utils/api";
-import { purchaseLand, sellLand, getUserUnitsForLand } from "../../services/landService";
+import {
+  purchaseLand,
+  sellLand,
+  getUserUnitsForLand,
+} from "../../services/landService";
 import { getLandImage } from "../../utils/images";
 
-// Lightbox imports
+// Lightbox
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
@@ -13,43 +17,58 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 // Toast
 import toast, { Toaster } from "react-hot-toast";
 
+/* ================= MONEY HELPERS ================= */
+
+const koboToNaira = (kobo) => Number(kobo) / 100;
+
+const formatNaira = (kobo) =>
+  koboToNaira(kobo).toLocaleString("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+/* ================= COMPONENT ================= */
+
 export default function LandDetails() {
   const { id } = useParams();
+
   const [land, setLand] = useState(null);
   const [userUnits, setUserUnits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [modalError, setModalError] = useState("");
+
   const [modalType, setModalType] = useState(null);
   const [unitsInput, setUnitsInput] = useState("");
-  const [modalLoading, setModalLoading] = useState(false);
   const [transactionPin, setTransactionPin] = useState("");
+  const [modalError, setModalError] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
 
-  // Lightbox state
+  // Lightbox
   const [open, setOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
 
-  // Fetch land details
+  /* ================= DATA ================= */
+
   const fetchLand = useCallback(async () => {
     try {
       const res = await api.get(`/lands/${id}`);
       setLand(res.data.data);
-    } catch (err) {
-      console.error("Error fetching land:", err);
+    } catch {
       setError("Unable to load land details.");
     } finally {
       setLoading(false);
     }
   }, [id]);
 
-  // Fetch user units
   const fetchUserUnits = useCallback(async () => {
     try {
       const res = await getUserUnitsForLand(id);
-      if (res.units_owned !== undefined) setUserUnits(res.units_owned);
-    } catch (err) {
-      console.error("Error fetching user units:", err);
-    }
+      if (res.units_owned !== undefined) {
+        setUserUnits(res.units_owned);
+      }
+    } catch {}
   }, [id]);
 
   useEffect(() => {
@@ -57,10 +76,12 @@ export default function LandDetails() {
     fetchUserUnits();
   }, [fetchLand, fetchUserUnits]);
 
-  // Handle purchase/sell
+  /* ================= ACTION ================= */
+
   const handleAction = async () => {
     const units = Number(unitsInput);
-    if (!units || isNaN(units) || units <= 0) {
+
+    if (!units || units <= 0) {
       setModalError("Please enter a valid number of units.");
       return;
     }
@@ -77,10 +98,10 @@ export default function LandDetails() {
       let res;
       if (modalType === "purchase") {
         res = await purchaseLand(id, units, transactionPin);
-        toast.success(`✅ Purchase successful! Reference: ${res.reference}`);
-      } else if (modalType === "sell") {
+        toast.success(`Purchase successful! Ref: ${res.reference}`);
+      } else {
         res = await sellLand(id, units, transactionPin);
-        toast.success(`✅ Sold successfully! Reference: ${res.reference}`);
+        toast.success(`Sold successfully! Ref: ${res.reference}`);
       }
 
       await fetchLand();
@@ -90,17 +111,17 @@ export default function LandDetails() {
       setUnitsInput("");
       setTransactionPin("");
     } catch (err) {
-      console.error("Transaction error:", err);
-      const message =
-        err.response?.data?.message || err.message || "Transaction failed. Please try again.";
-      setModalError(message);
-      toast.error(`❌ ${message}`);
+      const msg =
+        err.response?.data?.message || "Transaction failed. Try again.";
+      setModalError(msg);
+      toast.error(msg);
     } finally {
       setModalLoading(false);
     }
   };
 
-  // Loading / Error UI
+  /* ================= STATES ================= */
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen">
@@ -122,24 +143,28 @@ export default function LandDetails() {
       </div>
     );
 
-  // Prepare images (always at least one placeholder)
+  /* ================= IMAGES ================= */
+
   const images = land.images?.length
     ? land.images.map((img) => ({ src: img.url }))
     : [{ src: getLandImage(land) }];
+
+  const totalKobo = unitsInput
+    ? Number(unitsInput) * land.price_per_unit_kobo
+    : 0;
+
+  /* ================= RENDER ================= */
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <Toaster position="top-right" />
 
-      <Link
-        to="/lands"
-        className="inline-block mb-6 text-blue-600 hover:underline"
-      >
+      <Link to="/lands" className="text-blue-600 hover:underline">
         ← Back to Lands
       </Link>
 
-      <div className="bg-white shadow rounded-xl overflow-hidden">
-        {/* IMAGE GALLERY */}
+      <div className="bg-white shadow rounded-xl overflow-hidden mt-6">
+        {/* Images */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
           {images.map((img, i) => (
             <img
@@ -150,44 +175,32 @@ export default function LandDetails() {
                 setPhotoIndex(i);
                 setOpen(true);
               }}
-              className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+              className="w-full h-64 object-cover rounded-lg cursor-pointer"
             />
           ))}
         </div>
 
-        {/* LAND DETAILS */}
+        {/* Details */}
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-3">{land.title}</h1>
-          <p className="text-gray-600 mb-2">{land.location}</p>
+          <h1 className="text-2xl font-bold">{land.title}</h1>
+          <p className="text-gray-600">{land.location}</p>
 
-          <div className="text-gray-700 space-y-1 mb-4">
-            <p>
-              <span className="font-medium">Size:</span> {land.size} sq ft
-            </p>
-            <p>
-              <span className="font-medium">Price per unit:</span> ₦
-              {Number(land.price_per_unit).toLocaleString()}
-            </p>
-            <p>
-              <span className="font-medium">Available Units:</span> {land.available_units}
-            </p>
-            <p>
-              <span className="font-medium">Total Units:</span> {land.total_units}
-            </p>
-            <p>
-              <span className="font-medium">Your Units:</span> {userUnits ?? 0}
-            </p>
+          <div className="mt-4 space-y-1 text-gray-700">
+            <p><strong>Size:</strong> {land.size} sq ft</p>
+            <p><strong>Price per unit:</strong> {formatNaira(land.price_per_unit_kobo)}</p>
+            <p><strong>Available Units:</strong> {land.available_units}</p>
+            <p><strong>Total Units:</strong> {land.total_units}</p>
+            <p><strong>Your Units:</strong> {userUnits}</p>
           </div>
 
-          <p className="text-gray-700 leading-relaxed mb-6">
+          <p className="mt-5 text-gray-700">
             {land.description || "No description available."}
           </p>
 
-          {/* ACTION BUTTONS */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-6">
             <button
               onClick={() => setModalType("purchase")}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
             >
               Purchase Units
             </button>
@@ -195,7 +208,7 @@ export default function LandDetails() {
             {userUnits > 0 && (
               <button
                 onClick={() => setModalType("sell")}
-                className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
+                className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600"
               >
                 Sell Units
               </button>
@@ -204,7 +217,7 @@ export default function LandDetails() {
         </div>
       </div>
 
-      {/* LIGHTBOX */}
+      {/* Lightbox */}
       {open && (
         <Lightbox
           open={open}
@@ -215,92 +228,51 @@ export default function LandDetails() {
         />
       )}
 
-      {/* MODAL */}
+      {/* Modal */}
       {modalType && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-96">
-            <h2 className="text-lg font-semibold mb-4 text-gray-800 capitalize">
-              {modalType === "purchase" ? "Purchase Units" : "Sell Units"}
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-96">
+            <h2 className="text-lg font-semibold mb-4 capitalize">
+              {modalType} Units
             </h2>
 
-            {/* Units Input */}
-            <label className="block text-gray-700 mb-1">Number of Units</label>
             <input
               type="number"
               min="1"
               max={modalType === "sell" ? userUnits : land.available_units}
               value={unitsInput}
-              onChange={(e) => {
-                let value = e.target.value;
-                if (modalType === "sell" && Number(value) > userUnits) value = userUnits;
-                if (modalType === "purchase" && Number(value) > land.available_units)
-                  value = land.available_units;
-                setUnitsInput(value);
-              }}
-              placeholder={`Enter number of units to ${modalType}`}
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
+              onChange={(e) => setUnitsInput(e.target.value)}
+              className="w-full border rounded px-3 py-2 mb-3"
+              placeholder="Number of units"
             />
-            {modalType === "sell" && (
-              <p className="text-sm text-gray-500 mb-2">
-                You own: <strong>{userUnits}</strong> units
-              </p>
-            )}
-            {modalType === "purchase" && (
-              <p className="text-sm text-gray-500 mb-2">
-                Available: <strong>{land.available_units}</strong> units
-              </p>
-            )}
 
-            {/* Transaction PIN */}
-            <label className="block text-gray-700 mb-1">Transaction PIN</label>
             <input
               type="password"
               inputMode="numeric"
               maxLength={4}
               value={transactionPin}
-              onChange={(e) => {
-                const digitsOnly = e.target.value.replace(/\D/g, "");
-                if (digitsOnly.length <= 4) setTransactionPin(digitsOnly);
-              }}
-              placeholder="Enter your 4-digit PIN"
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring focus:ring-blue-300"
+              onChange={(e) =>
+                setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
+              className="w-full border rounded px-3 py-2 mb-3"
+              placeholder="4-digit PIN"
             />
 
-            {modalError && <p className="text-red-600 text-sm mb-3">{modalError}</p>}
-
-            {/* Estimated total */}
             {unitsInput > 0 && (
-              <p className="text-gray-700 text-sm mb-3">
-                {modalType === "purchase" ? (
-                  <>
-                    You’ll pay:{" "}
-                    <span className="font-semibold text-blue-700">
-                      ₦{(unitsInput * land.price_per_unit).toLocaleString()}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    You’ll receive:{" "}
-                    <span className="font-semibold text-green-700">
-                      ₦{(unitsInput * land.price_per_unit).toLocaleString()}
-                    </span>
-                  </>
-                )}
+              <p className="text-sm mb-3">
+                {modalType === "purchase" ? "You’ll pay:" : "You’ll receive:"}{" "}
+                <strong>{formatNaira(totalKobo)}</strong>
               </p>
             )}
 
-            {/* Buttons */}
+            {modalError && (
+              <p className="text-red-600 text-sm mb-3">{modalError}</p>
+            )}
+
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => {
-                  if (modalLoading) return;
-                  setModalType(null);
-                  setModalError("");
-                  setUnitsInput("");
-                  setTransactionPin("");
-                }}
-                disabled={modalLoading}
-                className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 disabled:opacity-50"
+                onClick={() => setModalType(null)}
+                className="bg-gray-300 px-4 py-2 rounded"
               >
                 Cancel
               </button>
@@ -308,39 +280,13 @@ export default function LandDetails() {
               <button
                 onClick={handleAction}
                 disabled={modalLoading}
-                className={`px-4 py-2 rounded-lg text-white flex items-center justify-center gap-2 ${
+                className={`px-4 py-2 rounded text-white ${
                   modalType === "purchase"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-yellow-500 hover:bg-yellow-600"
-                } disabled:opacity-50`}
+                    ? "bg-green-600"
+                    : "bg-yellow-500"
+                }`}
               >
-                {modalLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      ></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  "Confirm"
-                )}
+                {modalLoading ? "Processing..." : "Confirm"}
               </button>
             </div>
           </div>

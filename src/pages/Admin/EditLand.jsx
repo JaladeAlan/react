@@ -12,7 +12,7 @@ export default function EditLand() {
     location: "",
     description: "",
     size: "",
-    price_per_unit: "",
+    price_per_unit_kobo: "",
     total_units: "",
     lat: "",
     lng: "",
@@ -36,7 +36,7 @@ export default function EditLand() {
           location: land.location || "",
           description: land.description || "",
           size: land.size?.toString() || "",
-          price_per_unit: land.price_per_unit?.toString() || "",
+          price_per_unit_kobo: land.price_per_unit_kobo?.toString() || "",
           total_units: land.total_units?.toString() || "",
           lat: land.lat?.toString() || "",
           lng: land.lng?.toString() || "",
@@ -57,7 +57,7 @@ export default function EditLand() {
     const { name, value, type, checked } = e.target;
 
     if (
-      ["size", "price_per_unit", "total_units", "lat", "lng"].includes(name)
+      ["size", "price_per_unit_kobo", "total_units", "lat", "lng"].includes(name)
     ) {
       if (!/^-?\d*\.?\d*$/.test(value)) return;
     }
@@ -198,9 +198,9 @@ export default function EditLand() {
         <div>
           <label className="block mb-1 font-medium">Price Per Unit</label>
           <input
-            name="price_per_unit"
+            name="price_per_unit_kobo"
             placeholder="e.g. 150000"
-            value={form.price_per_unit}
+            value={form.price_per_unit_kobo}
             onChange={handleChange}
             className="w-full p-3 border rounded"
           />

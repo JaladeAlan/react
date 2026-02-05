@@ -12,7 +12,7 @@ export default function CreateLand() {
     title: "",
     location: "",
     size: "",
-    price_per_unit: "",
+    price_per_unit_kobo: "",
     total_units: "",
     lat: "",
     lng: "",
@@ -29,7 +29,7 @@ export default function CreateLand() {
     }
 
     if (
-      ["size", "price_per_unit", "total_units", "lat", "lng"].includes(name)
+      ["size", "price_per_unit_kobo", "total_units", "lat", "lng"].includes(name)
     ) {
       if (!/^-?\d*\.?\d*$/.test(value)) return;
     }
@@ -69,7 +69,7 @@ export default function CreateLand() {
         title: "",
         location: "",
         size: "",
-        price_per_unit: "",
+        price_per_unit_kobo: "",
         total_units: "",
         lat: "",
         lng: "",
@@ -158,11 +158,11 @@ export default function CreateLand() {
         {/* Price */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Price per Unit
+            Price per Unit (in Kobo)
           </label>
           <input
-            name="price_per_unit"
-            value={form.price_per_unit}
+            name="price_per_unit_kobo"
+            value={form.price_per_unit_kobo}
             onChange={handleChange}
             className="w-full p-3 border rounded"
           />
