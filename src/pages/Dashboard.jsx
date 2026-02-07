@@ -134,10 +134,10 @@ export default function Dashboard() {
                   value={`₦${Number(stats?.balance ?? 0).toLocaleString()}`}
                 />
                 <Stat
-                  title="Total Invested"
+                  title="Amount Invested"
                   value={`₦${Number(stats?.total_invested ?? 0).toLocaleString()}`}
                 />
-                <Stat title="Lands Owned" value={stats?.lands_owned ?? 0} />
+                <Stat title="Lands with Units Owned" value={stats?.lands_owned ?? 0} />
               </>
             )
           }
