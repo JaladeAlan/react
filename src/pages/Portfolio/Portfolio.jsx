@@ -184,7 +184,7 @@ export default function Portfolio() {
             value={summary.total_portfolio_value_kobo}
           />
           <SummaryCard
-            title="Amount Invested"
+            title="Current Investment"
             value={summary.total_invested_kobo}
           />
           <SummaryCard
