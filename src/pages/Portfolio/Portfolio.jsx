@@ -62,7 +62,7 @@ export default function Portfolio() {
         api.get("/portfolio/allocation"),
       ]);
 
-      setSummary(summaryRes.data);
+      setSummary(summaryRes.data.data);
       setChartData(chartRes.data || []);
       setPerformanceData(performanceRes.data || []);
       setAllocationData(allocationRes.data || []);
@@ -181,15 +181,15 @@ export default function Portfolio() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <SummaryCard
             title="Portfolio Value"
-            value={summary.total_portfolio_value_kobo}
+            value={summary.current_portfolio_value_kobo}
           />
           <SummaryCard
-            title="Current Investment"
+            title="Current Investment "
             value={summary.total_invested_kobo}
           />
           <SummaryCard
             title="Profit / Loss"
-            value={summary.profit_loss_kobo}
+            value={summary.total_profit_loss_kobo}
             highlight
           />
           <div className="p-4 bg-white rounded-xl shadow">
