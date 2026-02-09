@@ -199,7 +199,6 @@ export default function LandList() {
   useEffect(() => {
     (async () => {
       try {
-        // Fetch lands data (now includes heat)
         const landsRes = await api.get("/lands");
         console.log("Lands data:", landsRes.data.data);
         setLands(landsRes.data.data);
@@ -238,6 +237,19 @@ export default function LandList() {
     return () => map.off("moveend", update);
   }, [landsWithCoords]);
 
+  /* ===================== FULLSCREEN BODY SCROLL LOCK ===================== */
+  useEffect(() => {
+    if (isFullScreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullScreen]);
+
   /* ===================== HEATMAP ===================== */
   useEffect(() => {
     if (!mapRef.current) return;
@@ -247,7 +259,6 @@ export default function LandList() {
       landsCount: landsWithCoords.length,
     });
 
-    // Remove existing heatmap layer
     if (heatLayerRef.current) {
       console.log("Removing existing heatmap layer");
       mapRef.current.removeLayer(heatLayerRef.current);
@@ -286,7 +297,6 @@ export default function LandList() {
       layer.addTo(mapRef.current);
       console.log("Heatmap layer added to map");
 
-      // Fade in animation
       const container = layer._container;
       if (container) {
         container.style.opacity = '0';
@@ -319,195 +329,315 @@ export default function LandList() {
     : [9.082, 8.6753];
 
   return (
-    <div className="space-y-10 px-4 sm:px-8 pb-10">
-      {/* ===================== MAP ===================== */}
-      <div
-        ref={mapSectionRef}
-        className={`relative ${
-          isFullScreen
-            ? "fixed inset-0 z-[9999] bg-white"
-            : "rounded-xl overflow-hidden shadow-lg"
-        }`}
-      >
-        {/* TOP BUTTONS */}
-        <div className="absolute top-3 right-3 z-[2000] flex gap-2">
-          <button
-            onClick={() => setIsFullScreen((v) => !v)}
-            className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium"
-          >
-            {isFullScreen ? "✕ Close" : "⛶ Fullscreen"}
-          </button>
+    <>
+      {/* Fullscreen overlay - rendered outside normal flow */}
+      {isFullScreen && (
+        <div className="fixed inset-0 z-[9999] bg-white">
+          {/* TOP BUTTONS */}
+          <div className="absolute top-4 right-4 z-[10000] flex gap-2">
+            <button
+              onClick={() => setIsFullScreen(false)}
+              className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium border border-gray-200"
+            >
+              ✕ Close Fullscreen
+            </button>
 
-          <button
-            onClick={() => {
-              console.log("Toggle heatmap clicked. Current state:", showHeatmap);
-              setShowHeatmap((v) => !v);
-            }}
-            className={`
-              px-4 py-2 rounded-lg shadow-lg font-medium transition-all
-              ${showHeatmap 
-                ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
-                : "bg-white text-gray-700 hover:bg-gray-50"
-              }
-            `}
+            <button
+              onClick={() => {
+                console.log("Toggle heatmap clicked. Current state:", showHeatmap);
+                setShowHeatmap((v) => !v);
+              }}
+              className={`
+                px-4 py-2 rounded-lg shadow-lg font-medium transition-all
+                ${showHeatmap 
+                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
+                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                }
+              `}
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-xl">🔥</span>
+                <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+              </span>
+            </button>
+          </div>
+
+          <MapContainer
+            attributionControl={false} 
+            center={defaultCenter}
+            zoom={8}
+            className="h-full w-full"
           >
-            <span className="flex items-center gap-2">
-              <span className="text-xl">🔥</span>
-              <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
-            </span>
-          </button>
+            <AttributionControl prefix={false} />
+            <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />
+
+            <LayersControl position="topleft">
+              <LayersControl.BaseLayer checked name="Street">
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenStreetMap contributors"
+                />
+              </LayersControl.BaseLayer>
+
+              <LayersControl.BaseLayer name="Satellite">
+                <TileLayer
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  attribution="&copy; Esri, Maxar, Earthstar Geographics"
+                />
+              </LayersControl.BaseLayer>
+
+              <LayersControl.BaseLayer name="Terrain">
+                <TileLayer
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenTopoMap contributors"
+                />
+              </LayersControl.BaseLayer>
+            </LayersControl>
+
+            {!showHeatmap && (
+              <MarkerClusterGroup>
+                {landsWithCoords.map((land) => {
+                  const active =
+                    land.id === activeLandId || land.id === hoverLandId;
+
+                  return (
+                    <Marker
+                      key={land.id}
+                      position={[+land.lat, +land.lng]}
+                      icon={createMarkerIcon({
+                        priceKobo: land.price_per_unit_kobo,
+                        units: land.available_units,
+                        active,
+                      })}
+                    >
+                      <Popup>
+                        <div className="text-sm">
+                          <strong className="block mb-1">{land.title}</strong>
+                          <div className="text-gray-600">{land.location}</div>
+                          <div className="font-semibold mt-1">
+                            ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}/unit
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {land.available_units.toLocaleString()} units available
+                          </div>
+                          <Link
+                            to={`/lands/${land.id}`}
+                            className="text-blue-600 hover:underline text-xs block mt-2"
+                          >
+                            View Details →
+                          </Link>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MarkerClusterGroup>
+            )}
+
+            {showHeatmap && <HeatmapLabels lands={landsWithCoords} />}
+            
+            <HeatmapLegend show={showHeatmap} />
+
+            <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
+            <MapFlyController target={flyTarget} />
+            <MapInvalidate isFullScreen={isFullScreen} />
+          </MapContainer>
         </div>
+      )}
 
-        <MapContainer
-          attributionControl={false} 
-          center={defaultCenter}
-          zoom={8}
-          className={isFullScreen ? "h-screen w-full" : "h-[500px] w-full"}
-        >
-          <AttributionControl prefix={false} />
-          <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />
-
-          <LayersControl position="topleft">
-            <LayersControl.BaseLayer checked name="Street">
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="Satellite">
-              <TileLayer
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                attribution="&copy; Esri, Maxar, Earthstar Geographics"
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="Terrain">
-              <TileLayer
-                url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenTopoMap contributors"
-              />
-            </LayersControl.BaseLayer>
-          </LayersControl>
-
-          {/* Show markers when heatmap is off */}
-          {!showHeatmap && (
-            <MarkerClusterGroup>
-              {landsWithCoords.map((land) => {
-                const active =
-                  land.id === activeLandId || land.id === hoverLandId;
-
-                return (
-                  <Marker
-                    key={land.id}
-                    position={[+land.lat, +land.lng]}
-                    icon={createMarkerIcon({
-                      priceKobo: land.price_per_unit_kobo,
-                      units: land.available_units,
-                      active,
-                    })}
-                  >
-                    <Popup>
-                      <div className="text-sm">
-                        <strong className="block mb-1">{land.title}</strong>
-                        <div className="text-gray-600">{land.location}</div>
-                        <div className="font-semibold mt-1">
-                          ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}/unit
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {land.available_units.toLocaleString()} units available
-                        </div>
-                        <Link
-                          to={`/lands/${land.id}`}
-                          className="text-blue-600 hover:underline text-xs block mt-2"
-                        >
-                          View Details →
-                        </Link>
-                      </div>
-                    </Popup>
-                  </Marker>
-                );
-              })}
-            </MarkerClusterGroup>
-          )}
-
-          {/* Show heatmap labels when heatmap is on */}
-          {showHeatmap && <HeatmapLabels lands={landsWithCoords} />}
-          
-          <HeatmapLegend show={showHeatmap} />
-
-          <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
-          <MapFlyController target={flyTarget} />
-          <MapInvalidate isFullScreen={isFullScreen} />
-        </MapContainer>
-      </div>
-
-      {/* ===================== CARDS ===================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {visibleLands.map((land) => (
+      {/* Normal page content */}
+      <div className="space-y-10 px-4 sm:px-8 pb-10">
+        {/* ===================== MAP (NORMAL VIEW) ===================== */}
+        {!isFullScreen && (
           <div
-            key={land.id}
-            onMouseEnter={() => setHoverLandId(land.id)}
-            onMouseLeave={() => setHoverLandId(null)}
-            className="bg-white rounded-xl shadow hover:shadow-lg transition"
+            ref={mapSectionRef}
+            className="relative rounded-xl overflow-hidden shadow-lg"
           >
-            <img
-              src={getLandImage(land)}
-              alt={land.title}
-              className="h-48 w-full object-cover rounded-t-xl"
-            />
-            <div className="p-4">
-              <h3 className="font-semibold text-lg">{land.title}</h3>
-              <p className="text-sm text-gray-500">{land.location}</p>
-              <p className="mt-2 font-medium text-lg">
-                ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}
-                <span className="text-sm text-gray-500">/unit</span>
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {land.available_units.toLocaleString()} units available
-              </p>
-              
-              <div className="mt-4 space-y-2">
-                <Link
-                  to={`/lands/${land.id}`}
-                  className="block w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-center"
-                >
-                  View Details
-                </Link>
-                
-                <button
-                  onClick={() => {
-                    if (showHeatmap) {
-                      setShowHeatmap(false);
-                    }
-                    
-                    mapSectionRef.current?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
+            {/* TOP BUTTONS */}
+            <div className="absolute top-3 right-3 z-[2000] flex gap-2">
+              <button
+                onClick={() => setIsFullScreen(true)}
+                className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium border border-gray-200"
+              >
+                ⛶ Fullscreen
+              </button>
 
-                    setTimeout(() => {
-                      setActiveLandId(land.id);
-                      setFlyTarget({
-                        lat: +land.lat,
-                        lng: +land.lng,
-                      });
+              <button
+                onClick={() => {
+                  console.log("Toggle heatmap clicked. Current state:", showHeatmap);
+                  setShowHeatmap((v) => !v);
+                }}
+                className={`
+                  px-4 py-2 rounded-lg shadow-lg font-medium transition-all
+                  ${showHeatmap 
+                    ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                  }
+                `}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-xl">🔥</span>
+                  <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+                </span>
+              </button>
+            </div>
+
+            <MapContainer
+              attributionControl={false} 
+              center={defaultCenter}
+              zoom={8}
+              className="h-[500px] w-full"
+            >
+              <AttributionControl prefix={false} />
+              <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />
+
+              <LayersControl position="topleft">
+                <LayersControl.BaseLayer checked name="Street">
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution="&copy; OpenStreetMap contributors"
+                  />
+                </LayersControl.BaseLayer>
+
+                <LayersControl.BaseLayer name="Satellite">
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    attribution="&copy; Esri, Maxar, Earthstar Geographics"
+                  />
+                </LayersControl.BaseLayer>
+
+                <LayersControl.BaseLayer name="Terrain">
+                  <TileLayer
+                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                    attribution="&copy; OpenTopoMap contributors"
+                  />
+                </LayersControl.BaseLayer>
+              </LayersControl>
+
+              {!showHeatmap && (
+                <MarkerClusterGroup>
+                  {landsWithCoords.map((land) => {
+                    const active =
+                      land.id === activeLandId || land.id === hoverLandId;
+
+                    return (
+                      <Marker
+                        key={land.id}
+                        position={[+land.lat, +land.lng]}
+                        icon={createMarkerIcon({
+                          priceKobo: land.price_per_unit_kobo,
+                          units: land.available_units,
+                          active,
+                        })}
+                      >
+                        <Popup>
+                          <div className="text-sm">
+                            <strong className="block mb-1">{land.title}</strong>
+                            <div className="text-gray-600">{land.location}</div>
+                            <div className="font-semibold mt-1">
+                              ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}/unit
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {land.available_units.toLocaleString()} units available
+                            </div>
+                            <Link
+                              to={`/lands/${land.id}`}
+                              className="text-blue-600 hover:underline text-xs block mt-2"
+                            >
+                              View Details →
+                            </Link>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+                </MarkerClusterGroup>
+              )}
+
+              {showHeatmap && <HeatmapLabels lands={landsWithCoords} />}
+              
+              <HeatmapLegend show={showHeatmap} />
+
+              <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
+              <MapFlyController target={flyTarget} />
+              <MapInvalidate isFullScreen={isFullScreen} />
+            </MapContainer>
+          </div>
+        )}
+
+        {/* ===================== CARDS ===================== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {visibleLands.map((land) => (
+            <div
+              key={land.id}
+              onMouseEnter={() => setHoverLandId(land.id)}
+              onMouseLeave={() => setHoverLandId(null)}
+              className="bg-white rounded-xl shadow hover:shadow-lg transition"
+            >
+              <img
+                src={getLandImage(land)}
+                alt={land.title}
+                className="h-48 w-full object-cover rounded-t-xl"
+              />
+              <div className="p-4">
+                <h3 className="font-semibold text-lg">{land.title}</h3>
+                <p className="text-sm text-gray-500">{land.location}</p>
+                <p className="mt-2 font-medium text-lg">
+                  ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}
+                  <span className="text-sm text-gray-500">/unit</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {land.available_units.toLocaleString()} units available
+                </p>
+                
+                <div className="mt-4 space-y-2">
+                  <Link
+                    to={`/lands/${land.id}`}
+                    className="block w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-center"
+                  >
+                    View Details
+                  </Link>
+                  
+                  <button
+                    onClick={() => {
+                      if (showHeatmap) {
+                        setShowHeatmap(false);
+                      }
+                      
+                      if (isFullScreen) {
+                        setIsFullScreen(false);
+                      }
                       
                       setTimeout(() => {
-                        setActiveLandId(null);
-                      }, 3000);
-                    }, 400);
-                  }}
-                  className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition font-medium flex items-center justify-center gap-2"
-                >
-                  <span>📍</span>
-                  <span>View on Map</span>
-                </button>
+                        mapSectionRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+
+                        setTimeout(() => {
+                          setActiveLandId(land.id);
+                          setFlyTarget({
+                            lat: +land.lat,
+                            lng: +land.lng,
+                          });
+                          
+                          setTimeout(() => {
+                            setActiveLandId(null);
+                          }, 3000);
+                        }, 400);
+                      }, 100);
+                    }}
+                    className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition font-medium flex items-center justify-center gap-2"
+                  >
+                    <span>📍</span>
+                    <span>View on Map</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
-} 
+}
