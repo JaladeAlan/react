@@ -2,11 +2,13 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
+import PolygonMapEditor from "./PolygonMapEditor";
 
 export default function CreateLand() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
+  const [usePolygon, setUsePolygon] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -18,6 +20,7 @@ export default function CreateLand() {
     lng: "",
     description: "",
     is_available: true,
+    coordinates: null, // GeoJSON polygon
   });
 
   const handleChange = (e) => {
@@ -41,6 +44,25 @@ export default function CreateLand() {
     setImages([...e.target.files]);
   };
 
+  const handlePolygonChange = (polygon) => {
+    // polygon is GeoJSON format: { type: "Polygon", coordinates: [...] }
+    setForm({ ...form, coordinates: polygon });
+  };
+
+  const toggleCoordinateMode = () => {
+    if (!usePolygon && form.coordinates) {
+      // Switching to lat/lng - clear polygon
+      if (!confirm("This will clear the drawn polygon. Continue?")) return;
+      setForm({ ...form, coordinates: null });
+    }
+    if (usePolygon && (form.lat || form.lng)) {
+      // Switching to polygon - clear lat/lng
+      if (!confirm("This will clear lat/lng coordinates. Continue?")) return;
+      setForm({ ...form, lat: "", lng: "" });
+    }
+    setUsePolygon(!usePolygon);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -48,9 +70,24 @@ export default function CreateLand() {
       return toast.error("Title and location are required");
     }
 
+    // Validate coordinates
+    if (usePolygon && !form.coordinates) {
+      return toast.error("Please draw a polygon on the map");
+    }
+
+    if (!usePolygon && (!form.lat || !form.lng)) {
+      return toast.error("Please provide latitude and longitude");
+    }
+
     const data = new FormData();
+    
     Object.entries(form).forEach(([key, value]) => {
-      if (value !== "") {
+      if (key === "coordinates") {
+        // Send polygon as JSON string if present
+        if (value && usePolygon) {
+          data.append("coordinates", JSON.stringify(value));
+        }
+      } else if (value !== "") {
         data.append(key, key === "is_available" ? (value ? 1 : 0) : value);
       }
     });
@@ -75,8 +112,10 @@ export default function CreateLand() {
         lng: "",
         description: "",
         is_available: true,
+        coordinates: null,
       });
       setImages([]);
+      setUsePolygon(false);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create land");
     } finally {
@@ -121,27 +160,61 @@ export default function CreateLand() {
           />
         </div>
 
-        {/* Coordinates */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Latitude</label>
-            <input
-              name="lat"
-              value={form.lat}
-              onChange={handleChange}
-              className="w-full p-3 border rounded"
-            />
+        {/* Coordinate Mode Toggle */}
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-medium">Coordinate Type</label>
+            <button
+              type="button"
+              onClick={toggleCoordinateMode}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Switch to {usePolygon ? "Point" : "Polygon"}
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Longitude</label>
-            <input
-              name="lng"
-              value={form.lng}
-              onChange={handleChange}
-              className="w-full p-3 border rounded"
-            />
-          </div>
+          {!usePolygon ? (
+            // Point coordinates (lat/lng)
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Latitude</label>
+                <input
+                  name="lat"
+                  value={form.lat}
+                  onChange={handleChange}
+                  placeholder="e.g. 6.5244"
+                  className="w-full p-3 border rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Longitude</label>
+                <input
+                  name="lng"
+                  value={form.lng}
+                  onChange={handleChange}
+                  placeholder="e.g. 3.3792"
+                  className="w-full p-3 border rounded"
+                />
+              </div>
+            </div>
+          ) : (
+            // Polygon drawing
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Draw Polygon on Map
+              </label>
+              <PolygonMapEditor
+                polygon={form.coordinates}
+                onChange={handlePolygonChange}
+              />
+              {form.coordinates && (
+                <p className="text-sm text-green-600 mt-2">
+                  ✓ Polygon drawn ({form.coordinates.coordinates[0].length - 1} points)
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Size */}
@@ -217,7 +290,7 @@ export default function CreateLand() {
 
         <button
           disabled={loading}
-          className="bg-green-600 text-white px-6 py-3 rounded w-full"
+          className="bg-green-600 text-white px-6 py-3 rounded w-full disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Land"}
         </button>
