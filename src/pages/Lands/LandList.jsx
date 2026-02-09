@@ -14,7 +14,6 @@ import {
 } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
-
 import "leaflet/dist/leaflet.css";
 import "leaflet.heat";
 import "../../styles/leaflet-markers.css";
@@ -60,10 +59,94 @@ function MapInvalidate({ isFullScreen }) {
   return null;
 }
 
+function MapRefSetter({ setMapRef }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    setMapRef(map);
+  }, [map, setMapRef]);
+  
+  return null;
+}
+
+/* ===================== HEATMAP LABELS ===================== */
+function HeatmapLabels({ lands }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+
+  useEffect(() => {
+    const onZoom = () => setZoom(map.getZoom());
+    map.on('zoom', onZoom);
+    return () => map.off('zoom', onZoom);
+  }, [map]);
+
+  // Only show labels at certain zoom levels
+  if (zoom < 10) return null;
+
+  // Get top trending lands (heat > 0.15)
+  const trendingLands = lands
+    .filter(l => l.heat > 0.15)
+    .sort((a, b) => b.heat - a.heat)
+    .slice(0, 8);
+
+  return (
+    <>
+      {trendingLands.map(land => (
+        <Marker
+          key={`label-${land.id}`}
+          position={[+land.lat, +land.lng]}
+          icon={L.divIcon({
+            className: '',
+            html: `
+              <div style="
+                background: rgba(239, 68, 68, 0.95);
+                color: white;
+                padding: 6px 12px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                pointer-events: none;
+              ">
+                🔥 ${land.title}
+              </div>
+            `,
+            iconSize: [120, 30],
+            iconAnchor: [60, 15],
+          })}
+        />
+      ))}
+    </>
+  );
+}
+
+/* ===================== HEATMAP LEGEND ===================== */
+function HeatmapLegend({ show }) {
+  if (!show) return null;
+
+  return (
+    <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3">
+      <div className="text-xs font-semibold mb-2">Activity Level</div>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <div className="w-24 h-4 rounded" style={{
+            background: 'linear-gradient(to right, rgba(16,185,129,0.6), rgba(251,191,36,0.7), rgba(239,68,68,0.9))'
+          }}></div>
+        </div>
+        <div className="flex justify-between text-xs text-gray-600">
+          <span>Low</span>
+          <span>High</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ===================== MARKER HELPERS ===================== */
 function getPriceColor(priceNaira) {
-  if (priceNaira < 200_000) return "#22c55e";
-  if (priceNaira < 500_000) return "#facc15";
+  if (priceNaira < 2000) return "#22c55e";
+  if (priceNaira < 5000) return "#facc15";
   return "#ef4444";
 }
 
@@ -116,10 +199,13 @@ export default function LandList() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get("/lands");
-        setLands(res.data.data);
-        setVisibleLands(res.data.data);
-      } catch {
+        // Fetch lands data (now includes heat)
+        const landsRes = await api.get("/lands");
+        console.log("Lands data:", landsRes.data.data);
+        setLands(landsRes.data.data);
+        setVisibleLands(landsRes.data.data);
+      } catch (err) {
+        console.error("Error loading lands:", err);
         setError("Failed to load lands");
       } finally {
         setLoading(false);
@@ -156,27 +242,68 @@ export default function LandList() {
   useEffect(() => {
     if (!mapRef.current) return;
 
+    console.log("Heatmap effect triggered:", {
+      showHeatmap,
+      landsCount: landsWithCoords.length,
+    });
+
+    // Remove existing heatmap layer
     if (heatLayerRef.current) {
+      console.log("Removing existing heatmap layer");
       mapRef.current.removeLayer(heatLayerRef.current);
       heatLayerRef.current = null;
     }
 
-    if (showHeatmap && visibleLands.length) {
-      heatLayerRef.current = L.heatLayer(
-        visibleLands.map((l) => [
+    if (showHeatmap && landsWithCoords.length > 0) {
+      console.log("Creating new heatmap layer");
+      
+      const heatPoints = landsWithCoords.map((l) => {
+        const point = [
           +l.lat,
           +l.lng,
-          Math.max(0.25, Math.min(l.heat ?? 0, 1)),
-        ]),
-        { radius: 45, blur: 25, maxZoom: 17 }
-      ).addTo(mapRef.current);
+          Math.max(0.1, Math.min(l.heat ?? 0.5, 1)),
+        ];
+        console.log(`Heat point for ${l.title}:`, point);
+        return point;
+      });
+
+      const layer = L.heatLayer(heatPoints, {
+        radius: 50,
+        blur: 30,
+        maxZoom: 17,
+        max: 1.0,
+        minOpacity: 0.4,
+        gradient: {
+          0.0: 'rgba(59, 130, 246, 0)',
+          0.2: 'rgba(16, 185, 129, 0.6)',
+          0.4: 'rgba(251, 191, 36, 0.7)',
+          0.6: 'rgba(245, 158, 11, 0.8)',
+          0.8: 'rgba(239, 68, 68, 0.9)',
+          1.0: 'rgba(220, 38, 38, 1)'
+        }
+      });
+
+      layer.addTo(mapRef.current);
+      console.log("Heatmap layer added to map");
+
+      // Fade in animation
+      const container = layer._container;
+      if (container) {
+        container.style.opacity = '0';
+        container.style.transition = 'opacity 0.5s ease-in-out';
+        setTimeout(() => {
+          container.style.opacity = '1';
+        }, 10);
+      }
+
+      heatLayerRef.current = layer;
     }
-  }, [showHeatmap, visibleLands]);
+  }, [showHeatmap, landsWithCoords]);
 
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center">
-        Loading…
+        <div className="text-lg">Loading lands...</div>
       </div>
     );
 
@@ -192,45 +319,53 @@ export default function LandList() {
     : [9.082, 8.6753];
 
   return (
-    <div className="space-y-10 px-4 sm:px-8">
+    <div className="space-y-10 px-4 sm:px-8 pb-10">
       {/* ===================== MAP ===================== */}
       <div
         ref={mapSectionRef}
         className={`relative ${
           isFullScreen
             ? "fixed inset-0 z-[9999] bg-white"
-            : "rounded-xl overflow-hidden shadow"
+            : "rounded-xl overflow-hidden shadow-lg"
         }`}
       >
         {/* TOP BUTTONS */}
         <div className="absolute top-3 right-3 z-[2000] flex gap-2">
           <button
             onClick={() => setIsFullScreen((v) => !v)}
-            className="bg-white px-3 py-1 rounded shadow"
+            className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium"
           >
             {isFullScreen ? "✕ Close" : "⛶ Fullscreen"}
           </button>
 
           <button
-            onClick={() => setShowHeatmap((v) => !v)}
-            className={`px-3 py-1 rounded shadow ${
-              showHeatmap ? "bg-red-600 text-white" : "bg-white"
-            }`}
+            onClick={() => {
+              console.log("Toggle heatmap clicked. Current state:", showHeatmap);
+              setShowHeatmap((v) => !v);
+            }}
+            className={`
+              px-4 py-2 rounded-lg shadow-lg font-medium transition-all
+              ${showHeatmap 
+                ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
+                : "bg-white text-gray-700 hover:bg-gray-50"
+              }
+            `}
           >
-            🔥 {showHeatmap ? "Hide" : "Heatmap"}
+            <span className="flex items-center gap-2">
+              <span className="text-xl">🔥</span>
+              <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+            </span>
           </button>
         </div>
 
         <MapContainer
           attributionControl={false} 
-          whenCreated={(map) => {
-            mapRef.current = map;
-          }}
           center={defaultCenter}
           zoom={8}
           className={isFullScreen ? "h-screen w-full" : "h-[500px] w-full"}
         >
           <AttributionControl prefix={false} />
+          <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />
 
           <LayersControl position="topleft">
             <LayersControl.BaseLayer checked name="Street">
@@ -255,6 +390,7 @@ export default function LandList() {
             </LayersControl.BaseLayer>
           </LayersControl>
 
+          {/* Show markers when heatmap is off */}
           {!showHeatmap && (
             <MarkerClusterGroup>
               {landsWithCoords.map((land) => {
@@ -272,25 +408,33 @@ export default function LandList() {
                     })}
                   >
                     <Popup>
-                      <strong>{land.title}</strong>
-                      <br />
-                      ₦
-                      {koboToNaira(
-                        land.price_per_unit_kobo
-                      ).toLocaleString()}
-                      <br />
-                      <Link
-                        to={`/lands/${land.id}`}
-                        className="text-blue-600"
-                      >
-                        View
-                      </Link>
+                      <div className="text-sm">
+                        <strong className="block mb-1">{land.title}</strong>
+                        <div className="text-gray-600">{land.location}</div>
+                        <div className="font-semibold mt-1">
+                          ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}/unit
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {land.available_units.toLocaleString()} units available
+                        </div>
+                        <Link
+                          to={`/lands/${land.id}`}
+                          className="text-blue-600 hover:underline text-xs block mt-2"
+                        >
+                          View Details →
+                        </Link>
+                      </div>
                     </Popup>
                   </Marker>
                 );
               })}
             </MarkerClusterGroup>
           )}
+
+          {/* Show heatmap labels when heatmap is on */}
+          {showHeatmap && <HeatmapLabels lands={landsWithCoords} />}
+          
+          <HeatmapLegend show={showHeatmap} />
 
           <FitBounds points={landsWithCoords.map((l) => [+l.lat, +l.lng])} />
           <MapFlyController target={flyTarget} />
@@ -315,35 +459,55 @@ export default function LandList() {
             <div className="p-4">
               <h3 className="font-semibold text-lg">{land.title}</h3>
               <p className="text-sm text-gray-500">{land.location}</p>
-              <p className="mt-2 font-medium">
-                ₦
-                {koboToNaira(
-                  land.price_per_unit_kobo
-                ).toLocaleString()}
+              <p className="mt-2 font-medium text-lg">
+                ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}
+                <span className="text-sm text-gray-500">/unit</span>
               </p>
-              <button
-                onClick={() => {
-                  mapSectionRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-
-                  setTimeout(() => {
-                    setActiveLandId(land.id);
-                    setFlyTarget({
-                      lat: +land.lat,
-                      lng: +land.lng,
+              <p className="text-xs text-gray-500 mt-1">
+                {land.available_units.toLocaleString()} units available
+              </p>
+              
+              <div className="mt-4 space-y-2">
+                <Link
+                  to={`/lands/${land.id}`}
+                  className="block w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-center"
+                >
+                  View Details
+                </Link>
+                
+                <button
+                  onClick={() => {
+                    if (showHeatmap) {
+                      setShowHeatmap(false);
+                    }
+                    
+                    mapSectionRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
                     });
-                  }, 400);
-                }}
-                className="mt-3 w-full bg-blue-600 text-white py-2 rounded"
-              >
-                View on Map
-              </button>
+
+                    setTimeout(() => {
+                      setActiveLandId(land.id);
+                      setFlyTarget({
+                        lat: +land.lat,
+                        lng: +land.lng,
+                      });
+                      
+                      setTimeout(() => {
+                        setActiveLandId(null);
+                      }, 3000);
+                    }, 400);
+                  }}
+                  className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition font-medium flex items-center justify-center gap-2"
+                >
+                  <span>📍</span>
+                  <span>View on Map</span>
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-}
+} 
