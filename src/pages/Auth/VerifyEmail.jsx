@@ -1,64 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { MailCheck, Loader2, ArrowLeft } from "lucide-react";
 import api from "../../utils/api";
 import FormError from "../../components/FormError";
 import handleApiError from "../../utils/handleApiError";
 
-// OTPInput Component
-function OTPInput({ otp, setOtp }) {
-  const handleChange = (e, idx) => {
-    const val = e.target.value;
-    if (/^\d?$/.test(val)) { // allow only single digit numbers
-      const newOtp = [...otp];
-      newOtp[idx] = val;
-      setOtp(newOtp);
-
-      // Auto focus next input
-      if (val && idx < otp.length - 1) {
-        const nextInput = document.getElementById(`otp-${idx + 1}`);
-        if (nextInput) nextInput.focus();
-      }
-    }
-  };
-
-  const handleKeyDown = (e, idx) => {
-    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
-      const prevInput = document.getElementById(`otp-${idx - 1}`);
-      if (prevInput) prevInput.focus();
-    }
-  };
-
-  return (
-    <div className="flex justify-center gap-2 mb-4">
-      {otp.map((digit, idx) => (
-        <input
-          key={idx}
-          id={`otp-${idx}`}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={digit}
-          onChange={(e) => handleChange(e, idx)}
-          onKeyDown={(e) => handleKeyDown(e, idx)}
-          className="w-12 h-12 text-center border rounded focus:outline-none focus:ring focus:ring-blue-400 text-lg"
-        />
-      ))}
-    </div>
-  );
-}
-
-// Main VerifyEmail Component
 export default function VerifyEmail() {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const inputRefs = useRef([]);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const email =
-    location.state?.email || localStorage.getItem("pending_email");
+  const email = location.state?.email || localStorage.getItem("pending_email");
 
   // Countdown timer for resend button
   useEffect(() => {
@@ -67,6 +24,35 @@ export default function VerifyEmail() {
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  const handleChange = (e, idx) => {
+    const val = e.target.value;
+    if (/^\d?$/.test(val)) {
+      const newOtp = [...otp];
+      newOtp[idx] = val;
+      setOtp(newOtp);
+
+      // Auto focus next input
+      if (val && idx < otp.length - 1) {
+        inputRefs.current[idx + 1].focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (e, idx) => {
+    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
+      inputRefs.current[idx - 1].focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pasted)) {
+      setOtp(pasted.split(""));
+      inputRefs.current[5].focus();
+    }
+  };
 
   // Verify OTP
   const handleVerify = async (e) => {
@@ -86,7 +72,7 @@ export default function VerifyEmail() {
       setMessage("Email verified successfully!");
       localStorage.removeItem("pending_email");
 
-      setTimeout(() => navigate("/email-verified"), 1200);
+      setTimeout(() => navigate("/email-verified"), 1500);
     } catch (err) {
       handleApiError(err, setError);
     } finally {
@@ -104,8 +90,8 @@ export default function VerifyEmail() {
 
     try {
       await api.post("/email/resend-verification", { email });
-      setMessage("Verification email resent!");
-      setCooldown(30);
+      setMessage("Verification code sent!");
+      setCooldown(60);
     } catch (err) {
       handleApiError(err, setError);
     } finally {
@@ -114,72 +100,104 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md text-center">
-        <h2 className="text-2xl font-semibold mb-3">Verify Your Email</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            GrowthApp
+          </h1>
+        </div>
 
-        {email && (
-          <p className="text-gray-600 mb-6">
-            We sent you a code to{" "}
-            <span className="font-medium text-blue-600">{email}</span>. <br />
-            This code will expire <span className="font-medium">10 minutes</span> after this message.
-          </p>
-        )}
-
-        {/* Error / Success Messages */}
-        <FormError error={error} />
-        {message && <p className="text-green-600 mb-2 text-sm">{message}</p>}
-
-        <form onSubmit={handleVerify}>
-          <OTPInput otp={otp} setOtp={setOtp} />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`mt-6 w-full bg-blue-600 text-white py-2 rounded-lg flex justify-center items-center transition ${
-              loading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
-            }`}
-          >
-            {loading && (
-              <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
-              </svg>
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+          {/* Icon Header */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <MailCheck className="text-blue-600" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">Verify Your Email</h2>
+            {email && (
+              <p className="text-sm text-gray-600 mt-2 text-center">
+                We sent a 6-digit code to<br />
+                <span className="font-semibold text-gray-800">{email}</span>
+              </p>
             )}
-            {loading ? "Verifying..." : "Verify Email"}
-          </button>
-        </form>
+            <p className="text-xs text-gray-500 mt-1">
+              Code expires in 10 minutes
+            </p>
+          </div>
 
-        <div className="mt-4">
-          <button
-            onClick={handleResend}
-            disabled={loading || cooldown > 0}
-            className={`text-sm ${
-              cooldown > 0
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-blue-600 hover:underline"
-            }`}
-          >
-            {cooldown > 0
-              ? `Resend available in ${cooldown}s`
-              : "Resend Verification Email"}
-          </button>
+          {/* Messages */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleVerify}>
+            {/* OTP Input */}
+            <div className="flex justify-center gap-2 mb-6" onPaste={handlePaste}>
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(e, idx)}
+                  onKeyDown={(e) => handleKeyDown(e, idx)}
+                  ref={(el) => (inputRefs.current[idx] = el)}
+                  className="w-12 h-12 text-center border-2 border-gray-300 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                  autoFocus={idx === 0}
+                />
+              ))}
+            </div>
+
+            {/* Verify Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all ${
+                loading
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              }`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <span>Verify Email</span>
+              )}
+            </button>
+          </form>
+
+          {/* Resend Code */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Didn't receive the code?{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={loading || cooldown > 0}
+                className={`font-semibold ${
+                  cooldown > 0 || loading
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700"
+                }`}
+              >
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Code"}
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

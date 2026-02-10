@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { MailCheck, ArrowLeft, Loader2 } from "lucide-react";
 import api from "../../utils/api";
-import { Loader2, MailCheck } from "lucide-react";
 import FormError from "../../components/FormError";
 import handleApiError from "../../utils/handleApiError";
 
@@ -17,7 +17,7 @@ export default function ResetVerify() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  //  Handle typing in OTP boxes
+  // Handle typing in OTP boxes
   const handleChange = (e, index) => {
     const value = e.target.value;
     if (/^[0-9]$/.test(value) || value === "") {
@@ -38,7 +38,7 @@ export default function ResetVerify() {
     }
   };
 
-  //  Allow pasting entire code
+  // Allow pasting entire code
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").trim();
@@ -48,7 +48,7 @@ export default function ResetVerify() {
     }
   };
 
-  //  Verify OTP
+  // Verify OTP
   const handleVerify = async (e) => {
     e.preventDefault();
     setError("");
@@ -76,7 +76,7 @@ export default function ResetVerify() {
       localStorage.setItem("reset_email", email);
       localStorage.setItem("otp_verified", "true");
 
-      setMessage("Verification successful! Redirecting to password reset...");
+      setMessage("Verification successful! Redirecting...");
       setTimeout(() => navigate("/set-new-password"), 1500);
     } catch (err) {
       handleApiError(err, setError);
@@ -85,7 +85,7 @@ export default function ResetVerify() {
     }
   };
 
-  //  Resend OTP
+  // Resend OTP
   const handleResend = async () => {
     if (!email) {
       setError("Missing email. Please go back and re-enter your email.");
@@ -107,59 +107,117 @@ export default function ResetVerify() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      <form
-        onSubmit={handleVerify}
-        className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md"
-      >
-        <div className="flex flex-col items-center mb-6">
-          <MailCheck className="w-10 h-10 text-blue-600 mb-2" />
-          <h2 className="text-xl font-semibold text-gray-700">Verify Code</h2>
-          <p className="text-sm text-gray-500 mt-1 text-center">
-            We sent a code to <strong>{email || "your email"}</strong>.<br />
-            This code expires in 10 minutes.
-          </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            GrowthApp
+          </h1>
         </div>
 
-        <FormError error={error} />
-        {message && <p className="text-green-600 text-sm mb-3 text-center">{message}</p>}
-
-        <div className="flex justify-between gap-2 mb-6" onPaste={handlePaste}>
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              type="text"
-              inputMode="numeric"
-              maxLength="1"
-              value={digit}
-              onChange={(e) => handleChange(e, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              ref={(el) => (inputRefs.current[index] = el)}
-              className="w-12 h-12 text-center border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          ))}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+        <form
+          onSubmit={handleVerify}
+          className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100"
         >
-          {loading ? <Loader2 className="animate-spin mx-auto" /> : "Verify"}
-        </button>
+          {/* Icon Header */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <MailCheck className="text-blue-600" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">Verify Code</h2>
+            <p className="text-sm text-gray-600 mt-2 text-center">
+              We sent a 6-digit code to<br />
+              <span className="font-semibold text-gray-800">{email || "your email"}</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Code expires in 10 minutes
+            </p>
+          </div>
 
-        <p className="text-center text-sm mt-4">
-          Didn’t get a code?{" "}
+          {/* Messages */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+              {message}
+            </div>
+          )}
+
+          {/* OTP Input */}
+          <div className="flex justify-center gap-2 mb-6" onPaste={handlePaste}>
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                type="text"
+                inputMode="numeric"
+                maxLength="1"
+                value={digit}
+                onChange={(e) => handleChange(e, index)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                ref={(el) => (inputRefs.current[index] = el)}
+                className="w-12 h-12 text-center border-2 border-gray-300 rounded-lg text-lg font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                autoFocus={index === 0}
+              />
+            ))}
+          </div>
+
+          {/* Verify Button */}
           <button
-            type="button"
-            onClick={handleResend}
-            disabled={resending}
-            className="text-blue-600 hover:underline"
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all ${
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            }`}
           >
-            {resending ? "Resending..." : "Resend Code"}
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                <span>Verifying...</span>
+              </>
+            ) : (
+              <span>Verify Code</span>
+            )}
           </button>
-        </p>
-      </form>
+
+          {/* Resend Code */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Didn't receive the code?{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className={`font-semibold ${
+                  resending
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-blue-600 hover:text-blue-700"
+                }`}
+              >
+                {resending ? "Sending..." : "Resend Code"}
+              </button>
+            </p>
+          </div>
+
+          {/* Back Link */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              <span>Use different email</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
