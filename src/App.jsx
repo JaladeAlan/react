@@ -17,6 +17,8 @@ import Footer from "./components/Footer";
 // Pages
 import Splash from "./pages/Splash";
 import Dashboard from "./pages/Dashboard";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Settings from "./pages/Settings/Settings";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
@@ -95,6 +97,8 @@ function AnimatedRoutes() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-verify" element={<ResetVerify />} />
               <Route path="/set-new-password" element={<SetNewPassword />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
 
               {/* Protected Routes */}
               <Route
