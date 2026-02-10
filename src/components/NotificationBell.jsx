@@ -41,7 +41,6 @@ export default function NotificationBell() {
     loadNotifications();
   };
 
-  // Handle click - dropdown on desktop, navigate on mobile
   const handleBellClick = () => {
     if (window.innerWidth < 768) {
       navigate("/notifications");
@@ -50,7 +49,6 @@ export default function NotificationBell() {
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -71,11 +69,10 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      {/* Bell Icon */}
       <button
         ref={buttonRef}
         onClick={handleBellClick}
-        className="relative p-2 rounded-full hover:bg-gray-100"
+        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
         <Bell size={20} />
@@ -86,64 +83,75 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown (Desktop only) */}
       {open && (
-        <div
-          ref={dropdownRef}
-          className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg border z-50"
-        >
-          <div className="flex justify-between items-center p-3 border-b">
-            <span className="font-semibold">Notifications</span>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllAsRead}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Mark all as read
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <p className="p-4 text-gray-500 text-sm">Loading...</p>
-            ) : notifications.length === 0 ? (
-              <p className="p-4 text-gray-500 text-sm text-center">
-                No notifications yet
-              </p>
-            ) : (
-              notifications.slice(0, 10).map((n) => (
-                <div
-                  key={n.id}
-                  className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition ${
-                    !n.read_at ? "bg-blue-50" : ""
-                  }`}
+        <>
+          <div
+            className="hidden md:block fixed inset-0 z-[10004]"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          
+          <div
+            ref={dropdownRef}
+            className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-2xl rounded-lg border border-gray-200 z-[10006]"
+          >
+            <div className="flex justify-between items-center p-3 border-b bg-gray-50 rounded-t-lg">
+              <span className="font-semibold text-gray-800">Notifications</span>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
-                  <p className={`text-sm ${!n.read_at ? "font-semibold" : ""}`}>
-                    {n.data?.message || "New activity"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(n.created_at).toLocaleString()}
-                  </p>
+                  Mark all as read
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {loading ? (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-500 text-sm mt-2">Loading...</p>
                 </div>
-              ))
+              ) : notifications.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Bell size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-gray-500 text-sm">No notifications yet</p>
+                </div>
+              ) : (
+                notifications.slice(0, 10).map((n) => (
+                  <div
+                    key={n.id}
+                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition ${
+                      !n.read_at ? "bg-blue-50 border-l-4 border-l-blue-500" : ""
+                    }`}
+                  >
+                    <p className={`text-sm ${!n.read_at ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+                      {n.data?.message || "New activity"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {notifications.length > 10 && (
+              <div className="p-3 border-t text-center bg-gray-50 rounded-b-lg">
+                <button
+                  onClick={() => {
+                    navigate("/notifications");
+                    setOpen(false);
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  View all notifications →
+                </button>
+              </div>
             )}
           </div>
-
-          {notifications.length > 10 && (
-            <div className="p-3 border-t text-center">
-              <button
-                onClick={() => {
-                  navigate("/notifications");
-                  setOpen(false);
-                }}
-                className="text-sm text-blue-600 hover:underline"
-              >
-                View all notifications
-              </button>
-            </div>
-          )}
-        </div>
+        </>
       )}
     </div>
   );

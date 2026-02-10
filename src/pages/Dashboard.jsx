@@ -189,7 +189,7 @@ export default function Dashboard() {
               />
               <StatCard
                 icon={<MapPin size={24} className="text-purple-600" />}
-                title="Lands Owned"
+                title="Lands with Units Owned"
                 value={stats?.lands_owned ?? 0}
                 subtitle={`${stats?.units_owned ?? 0} total units`}
               />
