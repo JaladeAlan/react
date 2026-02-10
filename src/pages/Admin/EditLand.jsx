@@ -44,7 +44,7 @@ export default function EditLand() {
                 ? JSON.parse(land.coordinates)
                 : land.coordinates;
           } catch (e) {
-            console.error("Failed to parse coordinates:", e);
+            parsedCoordinates = null;
           }
         }
 
@@ -73,7 +73,6 @@ export default function EditLand() {
 
         setExistingImages(land.images || []);
       } catch (err) {
-        console.error("Failed to load land:", err);
         toast.error("Failed to load land");
       }
     };
@@ -104,8 +103,6 @@ export default function EditLand() {
   };
 
   const handlePolygonChange = (polygon) => {
-    console.log('Polygon received:', polygon); // Debug log
-    
     // Ensure proper GeoJSON structure
     let validPolygon = polygon;
     
@@ -117,7 +114,7 @@ export default function EditLand() {
       };
     }
     
-    console.log('Valid polygon:', validPolygon); // Debug log
+
     setForm({ ...form, coordinates: validPolygon });
   };
 
@@ -237,21 +234,12 @@ export default function EditLand() {
           // Don't send coordinates at all when using point
           delete jsonPayload.coordinates;
         }
-
-        console.log('Sending payload:', jsonPayload); // Debug log
-        console.log('Coordinates structure:', JSON.stringify(jsonPayload.coordinates, null, 2)); // DETAILED DEBUG
-        console.log('Has lat?', 'lat' in jsonPayload); // Check if lat exists
-        console.log('Has coordinates?', 'coordinates' in jsonPayload); // Check if coordinates exists
-
         await api.post(`/lands/admin/${id}`, jsonPayload);
       }
 
       toast.success("Land updated successfully");
       navigate("/admin/lands");
     } catch (err) {
-      console.error("Update error:", err);
-      console.error("Error response:", err.response?.data); // ADDED: Better error logging
-      
       // Show validation errors if available
       if (err.response?.data?.errors) {
         const errors = err.response.data.errors;
