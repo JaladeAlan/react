@@ -33,9 +33,16 @@ export function fetchUnreadNotifications(force = false) {
   return unreadPromise;
 }
 
-// Mark all read
+// Mark all notifications as read
 export async function markAllNotificationsRead() {
   await api.post("/notifications/read");
+  resetNotificationCache();
+  return true;
+}
+
+// Mark single notification as read
+export async function markNotificationRead(notificationId) {
+  await api.post(`/notifications/${notificationId}/read`);
   resetNotificationCache();
   return true;
 }

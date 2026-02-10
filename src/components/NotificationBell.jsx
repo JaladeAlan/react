@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   fetchNotifications,
   fetchUnreadNotifications,
@@ -12,8 +13,9 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const dropdownRef = useRef(null); 
-  const buttonRef = useRef(null);   
+  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const navigate = useNavigate();
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -39,6 +41,15 @@ export default function NotificationBell() {
     loadNotifications();
   };
 
+  // Handle click - dropdown on desktop, navigate on mobile
+  const handleBellClick = () => {
+    if (window.innerWidth < 768) {
+      navigate("/notifications");
+    } else {
+      setOpen(!open);
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -62,48 +73,55 @@ export default function NotificationBell() {
     <div className="relative">
       {/* Bell Icon */}
       <button
-        ref={buttonRef} 
-        onClick={() => setOpen(!open)}
+        ref={buttonRef}
+        onClick={handleBellClick}
         className="relative p-2 rounded-full hover:bg-gray-100"
+        aria-label="Notifications"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-            {unreadCount}
+          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown (Desktop only) */}
       {open && (
         <div
-          ref={dropdownRef} 
-          className="absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg border z-50"
+          ref={dropdownRef}
+          className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-lg rounded-lg border z-50"
         >
           <div className="flex justify-between items-center p-3 border-b">
             <span className="font-semibold">Notifications</span>
-            <button
-              onClick={handleMarkAllAsRead}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Mark all as read
-            </button>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Mark all as read
+              </button>
+            )}
           </div>
 
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto">
             {loading ? (
               <p className="p-4 text-gray-500 text-sm">Loading...</p>
             ) : notifications.length === 0 ? (
-              <p className="p-4 text-gray-500 text-sm">No notifications</p>
+              <p className="p-4 text-gray-500 text-sm text-center">
+                No notifications yet
+              </p>
             ) : (
-              notifications.map((n, i) => (
+              notifications.slice(0, 10).map((n) => (
                 <div
-                  key={i}
-                  className={`p-3 border-b hover:bg-gray-50 ${
-                    n.read_at ? "text-gray-500" : "text-gray-800 font-medium"
+                  key={n.id}
+                  className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition ${
+                    !n.read_at ? "bg-blue-50" : ""
                   }`}
                 >
-                  <p>{n.data?.message || "New activity"}</p>
+                  <p className={`text-sm ${!n.read_at ? "font-semibold" : ""}`}>
+                    {n.data?.message || "New activity"}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {new Date(n.created_at).toLocaleString()}
                   </p>
@@ -111,6 +129,20 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+
+          {notifications.length > 10 && (
+            <div className="p-3 border-t text-center">
+              <button
+                onClick={() => {
+                  navigate("/notifications");
+                  setOpen(false);
+                }}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                View all notifications
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

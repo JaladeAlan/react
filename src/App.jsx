@@ -32,6 +32,7 @@ import Portfolio from "./pages/Portfolio/Portfolio";
 import Wallet from "./pages/Wallet/Wallet";
 import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
+import NotificationsPage from "./pages/NotificationsPage";
 
 import CreateLand from "./pages/Admin/CreateLand";
 import EditLand from "./pages/Admin/EditLand";
@@ -101,6 +102,14 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
                   </ProtectedRoute>
                 }
               />
