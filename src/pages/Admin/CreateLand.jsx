@@ -63,6 +63,23 @@ export default function CreateLand() {
     setUsePolygon(!usePolygon);
   };
 
+    const appendCoordinatesToFormData = (formData, coordinates) => {
+    formData.append("coordinates[type]", coordinates.type);
+
+    coordinates.coordinates.forEach((ring, ringIndex) => {
+      ring.forEach((point, pointIndex) => {
+        formData.append(
+          `coordinates[coordinates][${ringIndex}][${pointIndex}][0]`,
+          point[0]
+        );
+        formData.append(
+          `coordinates[coordinates][${ringIndex}][${pointIndex}][1]`,
+          point[1]
+        );
+      });
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -79,29 +96,62 @@ export default function CreateLand() {
       return toast.error("Please provide latitude and longitude");
     }
 
-    const data = new FormData();
-    
-    Object.entries(form).forEach(([key, value]) => {
-      if (key === "coordinates") {
-        // Send polygon as JSON string if present
-        if (value && usePolygon) {
-          data.append("coordinates", JSON.stringify(value));
-        }
-      } else if (value !== "") {
-        data.append(key, key === "is_available" ? (value ? 1 : 0) : value);
-      }
-    });
+    // Build JSON payload
+    const payload = {
+      title: form.title,
+      location: form.location,
+      size: parseFloat(form.size) || 0,
+      price_per_unit_kobo: parseInt(form.price_per_unit_kobo) || 0,
+      total_units: parseInt(form.total_units) || 0,
+      description: form.description,
+      is_available: form.is_available ? 1 : 0,
+    };
 
-    images.forEach((img) => data.append("images[]", img));
+    // Add coordinates based on mode
+    if (usePolygon && form.coordinates) {
+      // Send GeoJSON Polygon as nested object
+      payload.coordinates = {
+        type: form.coordinates.type,
+        coordinates: form.coordinates.coordinates
+      };
+    } else if (!usePolygon && form.lat && form.lng) {
+      // Send lat/lng for Point
+      payload.lat = parseFloat(form.lat);
+      payload.lng = parseFloat(form.lng);
+    }
 
     try {
       setLoading(true);
-      await api.post("/lands/admin/create", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+
+      // If there are images, use FormData
+      if (images.length > 0) {
+        const formData = new FormData();
+        
+        // Append all fields
+        Object.entries(payload).forEach(([key, value]) => {
+          if (key === "coordinates") {
+            appendCoordinatesToFormData(formData, value);
+          } else {
+            formData.append(key, value);
+          }
+        });
+        
+        // Append images
+        images.forEach((img) => formData.append("images[]", img));
+
+        await api.post("/lands/admin/create", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        // No images - send JSON directly
+        await api.post("/lands/admin/create", payload, {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
       toast.success("Land created successfully");
 
+      // Reset form
       setForm({
         title: "",
         location: "",
@@ -117,6 +167,7 @@ export default function CreateLand() {
       setImages([]);
       setUsePolygon(false);
     } catch (err) {
+      console.error("Error creating land:", err);
       toast.error(err.response?.data?.message || "Failed to create land");
     } finally {
       setLoading(false);
@@ -146,6 +197,7 @@ export default function CreateLand() {
             value={form.title}
             onChange={handleChange}
             className="w-full p-3 border rounded"
+            required
           />
         </div>
 
@@ -157,6 +209,7 @@ export default function CreateLand() {
             value={form.location}
             onChange={handleChange}
             className="w-full p-3 border rounded"
+            required
           />
         </div>
 
@@ -184,6 +237,7 @@ export default function CreateLand() {
                   onChange={handleChange}
                   placeholder="e.g. 6.5244"
                   className="w-full p-3 border rounded"
+                  required={!usePolygon}
                 />
               </div>
 
@@ -195,6 +249,7 @@ export default function CreateLand() {
                   onChange={handleChange}
                   placeholder="e.g. 3.3792"
                   className="w-full p-3 border rounded"
+                  required={!usePolygon}
                 />
               </div>
             </div>
@@ -225,6 +280,7 @@ export default function CreateLand() {
             value={form.size}
             onChange={handleChange}
             className="w-full p-3 border rounded"
+            required
           />
         </div>
 
@@ -238,6 +294,7 @@ export default function CreateLand() {
             value={form.price_per_unit_kobo}
             onChange={handleChange}
             className="w-full p-3 border rounded"
+            required
           />
         </div>
 
@@ -249,6 +306,7 @@ export default function CreateLand() {
             value={form.total_units}
             onChange={handleChange}
             className="w-full p-3 border rounded"
+            required
           />
         </div>
 
@@ -285,12 +343,23 @@ export default function CreateLand() {
           <label className="block text-sm font-medium mb-1">
             Land Images
           </label>
-          <input type="file" multiple accept="image/*" onChange={handleImageChange} />
+          <input 
+            type="file" 
+            multiple 
+            accept="image/*" 
+            onChange={handleImageChange}
+            className="w-full"
+          />
+          {images.length > 0 && (
+            <p className="text-sm text-gray-600 mt-1">
+              {images.length} file(s) selected
+            </p>
+          )}
         </div>
 
         <button
           disabled={loading}
-          className="bg-green-600 text-white px-6 py-3 rounded w-full disabled:opacity-50"
+          className="bg-green-600 text-white px-6 py-3 rounded w-full disabled:opacity-50 hover:bg-green-700"
         >
           {loading ? "Creating..." : "Create Land"}
         </button>
