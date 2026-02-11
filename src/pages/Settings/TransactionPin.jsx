@@ -35,12 +35,16 @@ export default function TransactionPin() {
     const currentPinStr = pinToString(currentPin);
 
     if (newPinStr.length !== 4 || confirmPinStr.length !== 4) {
-      setError("PIN must contain exactly 4 digits.");
+      const msg = "PIN must contain exactly 4 digits.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     if (newPinStr !== confirmPinStr) {
-      setError("New PIN and confirmation PIN do not match.");
+      const msg = "New PIN and confirmation PIN do not match.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -64,7 +68,11 @@ export default function TransactionPin() {
       setConfirmPin(["", "", "", ""]);
       setTouched({ current: false, new: false, confirm: false });
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to update PIN";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -72,7 +80,28 @@ export default function TransactionPin() {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
-      <Toaster position="top-center" />
+      {/* Toast Container */}
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
         {hasPin ? "Update Transaction PIN" : "Set Transaction PIN"}
       </h2>
@@ -110,12 +139,16 @@ export default function TransactionPin() {
           />
         </div>
 
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {error}
+          </div>
+        )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {loading ? "Processing..." : hasPin ? "Update PIN" : "Set PIN"}
         </button>

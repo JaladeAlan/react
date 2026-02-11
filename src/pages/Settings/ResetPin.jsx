@@ -25,10 +25,13 @@ export default function ResetPin() {
 
     try {
       await api.post("/pin/forgot", { email });
-      toast.success("✅ PIN reset code sent to your email.");
+      toast.success("PIN reset code sent to your email.");
       setStep(2);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to send code.");
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to send code.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -44,7 +47,10 @@ export default function ResetPin() {
       toast.success("✅ Code verified! Enter new PIN.");
       setStep(3);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Invalid code.");
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Invalid code.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -73,7 +79,10 @@ export default function ResetPin() {
       setPin(["", "", "", ""]);
       setConfirmPin(["", "", "", ""]);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Reset failed.");
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Reset failed.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,7 +90,28 @@ export default function ResetPin() {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
-      <Toaster position="top-right" />
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
         Reset Transaction PIN
       </h2>
@@ -94,7 +124,7 @@ export default function ResetPin() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Sending..." : "Send Reset Code"}
           </button>
@@ -114,7 +144,7 @@ export default function ResetPin() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Verifying..." : "Verify Code"}
           </button>
@@ -130,7 +160,7 @@ export default function ResetPin() {
           <button
             disabled={loading}
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-lg"
+            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Resetting..." : "Reset PIN"}
           </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import handleApiError from "../../utils/handleApiError";
 
 export default function BankDetails() {
@@ -106,7 +106,10 @@ export default function BankDetails() {
       toast.success(res.data.message || "Bank details saved successfully!");
     } catch (err) {
       console.error("❌ Bank update error:", err);
-      handleApiError(err, (msg) => toast.error(msg));
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to save bank details";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -114,6 +117,28 @@ export default function BankDetails() {
 
   return (
     <div className="bg-gray-50 rounded-xl p-6 shadow-sm border">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
         Bank Details
       </h2>
