@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import handleApiError from "../../utils/handleApiError";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -150,6 +151,20 @@ export default function Portfolio() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-10">
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
       <h1 className="text-2xl font-bold">Your Portfolio</h1>
 
       {summary && (
@@ -351,13 +366,13 @@ const Modal = ({ modal, closeModal, handleTransaction, totalAmount, setModal }) 
         />
 
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={closeModal}>
+          <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-600 hover:text-gray-800">
             Cancel
           </button>
           <button
             type="submit"
             disabled={modal.processing}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {modal.processing ? "Processing…" : "Confirm"}
           </button>

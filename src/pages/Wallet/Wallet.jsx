@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
   Wallet as WalletIcon,
   TrendingUp,
@@ -239,6 +240,20 @@ Total: ₦${res.data.total_amount.toLocaleString()}`,
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Toast Container - REQUIRED for toasts to show */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
       <div className="max-w-5xl mx-auto py-6 sm:py-8 px-4 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
