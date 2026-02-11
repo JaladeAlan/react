@@ -96,7 +96,8 @@ export default function ProfileSettings() {
 
       // Success toast with custom styling
       toast.success("Password changed successfully!", {
-        duration: 4000,
+        duration: 5000,
+        position: "top-center",
         icon: "🎉",
         style: {
           borderRadius: "10px",
@@ -113,9 +114,15 @@ export default function ProfileSettings() {
       });
     } catch (err) {
       console.error("Password change error:", err);
-      handleApiError(err, setError);
-      toast.error(err.response?.data?.error || "Failed to change password", {
-        duration: 4000,
+      
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to change password";
+      
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        duration: 5000,
+        position: "top-center",
         style: {
           borderRadius: "10px",
           background: "#ef4444",
