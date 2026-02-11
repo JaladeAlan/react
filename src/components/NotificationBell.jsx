@@ -85,15 +85,17 @@ export default function NotificationBell() {
 
       {open && (
         <>
+          {/* Backdrop */}
           <div
-            className="hidden md:block fixed inset-0 z-[10004]"
+            className="hidden md:block fixed inset-0 z-[9100]"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
           
+          {/* Dropdown */}
           <div
             ref={dropdownRef}
-            className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-2xl rounded-lg border border-gray-200 z-[10006]"
+            className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-2xl rounded-lg border border-gray-200 z-[9300]"
           >
             <div className="flex justify-between items-center p-3 border-b bg-gray-50 rounded-t-lg">
               <span className="font-semibold text-gray-800">Notifications</span>

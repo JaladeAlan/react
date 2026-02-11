@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 
 // Context & Routing
@@ -182,7 +181,7 @@ function AnimatedRoutes() {
                 }
               />
 
-             <Route
+              <Route
                 path="/admin/lands"
                 element={
                   <ProtectedRoute>
@@ -192,7 +191,7 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               />
-             <Route
+              <Route
                 path="/admin/lands/create"
                 element={
                   <ProtectedRoute>
@@ -202,7 +201,7 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               />
-             <Route
+              <Route
                 path="/admin/lands/:id/edit"
                 element={
                   <ProtectedRoute>
@@ -212,7 +211,6 @@ function AnimatedRoutes() {
                   </ProtectedRoute>
                 }
               />
-
 
               {/* Fallback */}
               <Route
@@ -242,19 +240,63 @@ export default function App() {
       <AuthProvider>
         <ApiInterceptorWrapper>
           <ScrollToTop />
-          <AnimatedRoutes />
-
-          {/* Toastify container */}
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            pauseOnHover
-            draggable
-            theme="colored"
+          
+          {/* Global Toast Container - react-hot-toast */}
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            gutter={8}
+            containerStyle={{
+              top: 80, // Below header (header is at z-[9000] with height ~64px)
+              zIndex: 99999, // Above everything
+            }}
+            toastOptions={{
+              duration: 5000,
+              style: {
+                background: "#363636",
+                color: "#fff",
+                fontSize: "16px",
+                fontWeight: "600",
+                padding: "16px 24px",
+                borderRadius: "12px",
+                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
+              },
+              success: {
+                duration: 5000,
+                style: {
+                  background: "#10b981",
+                  color: "#fff",
+                },
+                iconTheme: {
+                  primary: "#fff",
+                  secondary: "#10b981",
+                },
+              },
+              error: {
+                duration: 5000,
+                style: {
+                  background: "#ef4444",
+                  color: "#fff",
+                },
+                iconTheme: {
+                  primary: "#fff",
+                  secondary: "#ef4444",
+                },
+              },
+              loading: {
+                style: {
+                  background: "#3b82f6",
+                  color: "#fff",
+                },
+                iconTheme: {
+                  primary: "#fff",
+                  secondary: "#3b82f6",
+                },
+              },
+            }}
           />
+          
+          <AnimatedRoutes />
         </ApiInterceptorWrapper>
       </AuthProvider>
     </BrowserRouter>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import handleApiError from "../../utils/handleApiError";
 import FormError from "../../components/FormError";
@@ -29,9 +30,26 @@ export default function Login() {
 
     try {
       await login(form.email, form.password);
-      navigate("/dashboard");
+      
+      // Show success toast
+      toast.success("Login successful! Welcome back 🎉", {
+        duration: 3000,
+        position: "top-center",
+      });
+      
+      // Small delay to show toast before navigation
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 500);
     } catch (err) {
       handleApiError(err, setError, setFieldErrors);
+      
+      // Show error toast
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Login failed. Please try again.";
+      toast.error(errorMessage, {
+        duration: 5000,
+        position: "top-center",
+      });
     } finally {
       setLoading(false);
     }
@@ -41,18 +59,18 @@ export default function Login() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             GrowthApp
           </h1>
-          <p className="text-gray-600 mt-2">Welcome back! Please login to continue</p>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">Welcome back! Please login to continue</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-8 shadow-xl rounded-2xl border border-gray-100"
+          className="bg-white p-6 sm:p-8 shadow-xl rounded-2xl border border-gray-100"
         >
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">Login</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-800">Login</h2>
 
           {/* General Error */}
           {error && (
@@ -64,7 +82,7 @@ export default function Login() {
 
           {/* Email Field */}
           <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
               Email Address
             </label>
             <div className="relative">
@@ -77,7 +95,7 @@ export default function Login() {
                 placeholder="you@example.com"
                 type="email"
                 autoComplete="email"
-                className={`border w-full pl-10 pr-3 py-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${
+                className={`border w-full pl-10 pr-3 py-3 sm:py-2.5 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${
                   fieldErrors.email ? "border-red-500 bg-red-50" : "border-gray-300"
                 }`}
                 required
@@ -88,7 +106,7 @@ export default function Login() {
 
           {/* Password Field */}
           <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
               Password
             </label>
             <div className="relative">
@@ -101,7 +119,7 @@ export default function Login() {
                 placeholder="••••••••"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                className={`border w-full pl-10 pr-12 py-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${
+                className={`border w-full pl-10 pr-12 py-3 sm:py-2.5 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none ${
                   fieldErrors.password ? "border-red-500 bg-red-50" : "border-gray-300"
                 }`}
                 required
@@ -109,17 +127,17 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors p-1"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             <FormError error={fieldErrors.password} />
           </div>
 
           {/* Forgot Password Link */}
-          <div className="text-right mb-6">
+          <div className="text-right mb-5 sm:mb-6">
             <Link
               to="/forgot-password"
               className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
@@ -132,7 +150,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-3.5 sm:py-3 rounded-lg text-white font-semibold flex items-center justify-center gap-2 transition-all text-base sm:text-sm ${
               loading
                 ? "bg-blue-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -171,7 +189,7 @@ export default function Login() {
           </button>
 
           {/* Register Link */}
-          <p className="text-center text-sm mt-6 text-gray-600">
+          <p className="text-center text-sm mt-5 sm:mt-6 text-gray-600">
             Don't have an account?{" "}
             <Link 
               to="/register" 
@@ -183,7 +201,7 @@ export default function Login() {
         </form>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-500 mt-6">
+        <p className="text-center text-xs text-gray-500 mt-5 sm:mt-6 px-4">
           By continuing, you agree to our{" "}
           <Link to="/terms" className="underline hover:text-gray-700">Terms of Service</Link>
           {" "}and{" "}

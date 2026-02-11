@@ -40,7 +40,7 @@ export default function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-white shadow-md z-[10005]">
+    <header className="fixed top-0 left-0 w-full bg-white shadow-md z-[9000]">
       <div className="max-w-6xl mx-auto flex justify-between items-center px-4 sm:px-6 py-3">
         {/* Logo */}
         <Link
@@ -100,7 +100,7 @@ export default function Header() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-[10004]"
+            className="fixed inset-0 bg-black bg-opacity-50 md:hidden z-[9100]"
             onClick={() => setMenuOpen(false)}
             aria-hidden="true"
           />
@@ -108,7 +108,7 @@ export default function Header() {
           {/* Mobile Navigation */}
           <div
             id="mobile-menu"
-            className="md:hidden bg-white border-t border-gray-200 shadow-lg relative z-[10005]"
+            className="md:hidden bg-white border-t border-gray-200 shadow-lg relative z-[9200]"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile navigation"

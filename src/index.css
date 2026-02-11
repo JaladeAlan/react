@@ -18,3 +18,12 @@ a {
   font-size: 10px;
   opacity: 0.6;
 }
+
+.react-hot-toast {
+  z-index: 99999 !important;
+}
+
+div[class*="Toaster"] {
+  top: 80px !important;
+  z-index: 99999 !important;
+}
