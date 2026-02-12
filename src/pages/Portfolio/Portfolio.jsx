@@ -150,7 +150,7 @@ export default function Portfolio() {
   /* ================= RENDER ================= */
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-10">
+    <div className="max-w-5xl mx-auto px-6 pb-6 space-y-10">
       {/* Toast Container */}
       <ToastContainer
         position="top-right"
@@ -169,41 +169,66 @@ export default function Portfolio() {
 
       {summary && (
         <div className="grid md:grid-cols-4 gap-4">
-          <SummaryCard title="Portfolio Value" value={summary.current_portfolio_value_kobo} />
-          <SummaryCard title="Total Invested" value={summary.total_invested_kobo} />
+          <SummaryCard 
+            title="Portfolio Value" 
+            value={summary.current_portfolio_value_kobo} 
+            isKobo
+          />
+          <SummaryCard 
+            title="Total Invested" 
+            value={summary.total_invested_kobo} 
+            isKobo
+          />
           <SummaryCard
             title="Profit / Loss"
             value={summary.total_profit_loss_kobo}
+            isKobo
             highlight
           />
-          <SummaryCard title="ROI" value={`${summary.profit_loss_percent}%`} raw />
+          <SummaryCard 
+            title="ROI" 
+            value={`${summary.profit_loss_percent || 0}%`} 
+            raw 
+          />
         </div>
       )}
 
       {/* LANDS */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {lands.map((land) => (
-          <div key={land.land_id} className="bg-white p-5 rounded-xl shadow">
-            <h2 className="font-semibold text-lg">{land.land_name}</h2>
+      {lands.length === 0 ? (
+        <div className="bg-white p-8 rounded-xl shadow text-center">
+          <p className="text-gray-500">You haven't purchased any land yet</p>
+          <button
+            onClick={() => navigate("/lands")}
+            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Browse Available Lands
+          </button>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6">
+          {lands.map((land) => (
+            <div key={land.land_id} className="bg-white p-5 rounded-xl shadow">
+              <h2 className="font-semibold text-lg">{land.land_name}</h2>
 
-            <Info label="Units Owned" value={land.units_owned} />
-            <Info
-              label="Price per Unit"
-              value={`₦${(land.price_per_unit_kobo / 100).toLocaleString()}`}
-            />
-            <Info
-              label="Current Value"
-              value={`₦${Number(land.current_value).toLocaleString()}`}
-              strong
-            />
+              <Info label="Units Owned" value={land.units_owned} />
+              <Info
+                label="Price per Unit"
+                value={`₦${(land.price_per_unit_kobo / 100).toLocaleString()}`}
+              />
+              <Info
+                label="Current Value"
+                value={`₦${Number(land.current_value || 0).toLocaleString()}`}
+                strong
+              />
 
-            <div className="flex gap-3 mt-4">
-              <ActionBtn text="Buy More" color="green" onClick={() => openModal("buy", land)} />
-              <ActionBtn text="Sell" color="red" onClick={() => openModal("sell", land)} />
+              <div className="flex gap-3 mt-4">
+                <ActionBtn text="Buy More" color="green" onClick={() => openModal("buy", land)} />
+                <ActionBtn text="Sell" color="red" onClick={() => openModal("sell", land)} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* TRANSACTIONS */}
       <div className="bg-white rounded-xl shadow p-6">
@@ -292,14 +317,22 @@ export default function Portfolio() {
 
 /* ================= COMPONENTS ================= */
 
-const SummaryCard = ({ title, value, highlight, raw }) => (
-  <div className="bg-white p-4 rounded-xl shadow">
-    <p className="text-sm text-gray-500">{title}</p>
-    <p className={`text-xl font-bold ${highlight ? "text-green-600" : ""}`}>
-      {raw ? value : `₦${Number(value / 100).toLocaleString()}`}
-    </p>
-  </div>
-);
+const SummaryCard = ({ title, value, highlight, raw, isKobo }) => {
+  // Safe number conversion with fallback to 0
+  const safeValue = Number(value) || 0;
+  
+  // Convert from kobo to naira if needed
+  const displayValue = isKobo && !raw ? safeValue / 100 : safeValue;
+  
+  return (
+    <div className="bg-white p-4 rounded-xl shadow">
+      <p className="text-sm text-gray-500">{title}</p>
+      <p className={`text-xl font-bold ${highlight ? "text-green-600" : ""}`}>
+        {raw ? value : `₦${displayValue.toLocaleString()}`}
+      </p>
+    </div>
+  );
+};
 
 const Info = ({ label, value, strong }) => (
   <p className="text-gray-600 mt-1">
