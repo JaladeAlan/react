@@ -10,7 +10,7 @@ import {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, unread
+  const [filter, setFilter] = useState("all"); 
   const navigate = useNavigate();
 
   const loadNotifications = async () => {
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

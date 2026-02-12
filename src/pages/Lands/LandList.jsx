@@ -477,28 +477,38 @@ export default function LandList() {
     <>
       {/* Fullscreen overlay */}
       {isFullScreen && (
-        <div className="fixed inset-0 z-[9999] bg-white">
-          <div className="absolute top-4 right-4 z-[10000] flex gap-2">
+        <div className="fixed inset-0 z-[99999] bg-white">
+          {/* Mobile-optimized control buttons */}
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-[100000] flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => setIsFullScreen(false)}
-              className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium border border-gray-200"
+              className="bg-white px-3 sm:px-4 py-2 rounded-lg shadow-xl hover:bg-gray-50 active:bg-gray-100 transition font-medium border-2 border-gray-300 text-sm sm:text-base touch-manipulation min-h-[44px]"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              ✕ Close Fullscreen
+              <span className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="hidden sm:inline">Close Fullscreen</span>
+                <span className="sm:hidden">Close</span>
+              </span>
             </button>
 
             <button
               onClick={() => setShowHeatmap((v) => !v)}
               className={`
-                px-4 py-2 rounded-lg shadow-lg font-medium transition-all
+                px-3 sm:px-4 py-2 rounded-lg shadow-xl font-medium transition-all touch-manipulation min-h-[44px] text-sm sm:text-base
                 ${showHeatmap 
-                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                  ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:from-red-700 active:to-orange-700" 
+                  : "bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 border-2 border-gray-300"
                 }
               `}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className="flex items-center gap-2">
-                <span className="text-xl">🔥</span>
-                <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+              <span className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                <span className="text-base sm:text-xl">🔥</span>
+                <span className="hidden sm:inline">{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+                <span className="sm:hidden">{showHeatmap ? "Hide" : "Show"}</span>
               </span>
             </button>
           </div>
@@ -508,6 +518,7 @@ export default function LandList() {
             center={defaultCenter}
             zoom={8}
             className="h-full w-full"
+            style={{ touchAction: 'pan-x pan-y' }}
           >
             <AttributionControl prefix={false} />
             <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />
@@ -556,27 +567,37 @@ export default function LandList() {
             ref={mapSectionRef}
             className="relative rounded-xl overflow-hidden shadow-lg"
           >
-            <div className="absolute top-3 right-3 z-[2000] flex gap-2">
+            {/* Mobile-optimized control buttons for normal view */}
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-3 z-[2000] flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setIsFullScreen(true)}
-                className="bg-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-50 transition font-medium border border-gray-200"
+                className="bg-white px-3 sm:px-4 py-2 rounded-lg shadow-xl hover:bg-gray-50 active:bg-gray-100 transition font-medium border-2 border-gray-300 text-sm sm:text-base touch-manipulation min-h-[44px]"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                ⛶ Fullscreen
+                <span className="flex items-center gap-1 sm:gap-2">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  <span className="hidden sm:inline">Fullscreen</span>
+                  <span className="sm:hidden">Full</span>
+                </span>
               </button>
 
               <button
                 onClick={() => setShowHeatmap((v) => !v)}
                 className={`
-                  px-4 py-2 rounded-lg shadow-lg font-medium transition-all
+                  px-3 sm:px-4 py-2 rounded-lg shadow-xl font-medium transition-all touch-manipulation min-h-[44px] text-sm sm:text-base
                   ${showHeatmap 
-                    ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600" 
-                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:from-red-700 active:to-orange-700" 
+                    : "bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 border-2 border-gray-300"
                   }
                 `}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <span className="flex items-center gap-2">
-                  <span className="text-xl">🔥</span>
-                  <span>{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+                <span className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                  <span className="text-base sm:text-xl">🔥</span>
+                  <span className="hidden sm:inline">{showHeatmap ? "Hide Heatmap" : "Show Heatmap"}</span>
+                  <span className="sm:hidden">{showHeatmap ? "Hide" : "Show"}</span>
                 </span>
               </button>
             </div>
@@ -586,6 +607,7 @@ export default function LandList() {
               center={defaultCenter}
               zoom={8}
               className="h-[500px] w-full"
+              style={{ touchAction: 'pan-x pan-y' }}
             >
               <AttributionControl prefix={false} />
               <MapRefSetter setMapRef={(map) => { mapRef.current = map; }} />

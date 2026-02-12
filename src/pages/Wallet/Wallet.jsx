@@ -17,6 +17,9 @@ import {
 import api from "../../utils/api";
 import handleApiError from "../../utils/handleApiError";
 
+const FEE_PERCENT = 2;
+const FEE_CAP = 3000; // ₦3,000 cap
+
 export default function Wallet() {
   const [balance, setBalance] = useState(0);
   const [depositAmount, setDepositAmount] = useState("");
@@ -84,7 +87,10 @@ export default function Wallet() {
       return;
     }
 
-    const fee = Math.round(amt * 0.02);
+    // Calculate fee with cap
+    const calculatedFee = Math.round(amt * (FEE_PERCENT / 100));
+    const fee = Math.min(calculatedFee, FEE_CAP);
+    
     setFeePreview(fee);
     setTotalPreview(amt + fee);
   }, [depositAmount]);
@@ -226,6 +232,11 @@ Total: ₦${res.data.total_amount.toLocaleString()}`,
   };
 
   const quickAmounts = [1000, 5000, 10000, 50000];
+
+  // Calculate whether fee is capped for display purposes
+  const isFeeCapApplied = depositAmount && Number(depositAmount) > 0 
+    ? Math.round(Number(depositAmount) * (FEE_PERCENT / 100)) > FEE_CAP 
+    : false;
 
   if (isLoadingData) {
     return (
@@ -400,7 +411,7 @@ Total: ₦${res.data.total_amount.toLocaleString()}`,
                     </div>
 
                     <p className="text-xs text-slate-500 mt-2">
-                      A 2% transaction fee will be added
+                      {FEE_PERCENT}% transaction fee (max ₦{FEE_CAP.toLocaleString()}) will be added
                     </p>
                   </div>
 
@@ -414,12 +425,18 @@ Total: ₦${res.data.total_amount.toLocaleString()}`,
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">
-                          Transaction Fee (2%)
+                          Transaction Fee ({FEE_PERCENT}%{isFeeCapApplied ? ', capped' : ''})
                         </span>
                         <span className="font-semibold text-slate-800">
                           ₦{feePreview.toLocaleString()}
                         </span>
                       </div>
+                      {isFeeCapApplied && (
+                        <p className="text-xs text-emerald-600 flex items-center gap-1">
+                          <CheckCircle size={12} />
+                          Fee capped at ₦{FEE_CAP.toLocaleString()}
+                        </p>
+                      )}
                       <div className="border-t border-slate-200 pt-2 mt-2 flex justify-between">
                         <span className="font-semibold text-slate-800">
                           Total Amount
