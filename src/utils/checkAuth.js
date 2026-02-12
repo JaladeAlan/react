@@ -5,8 +5,13 @@ export async function checkAuth() {
   if (!token) return false;
 
   try {
-    const response = await axios.get("https://growth-estate.onrender.com/api/me", {
-      headers: { Authorization: `Bearer ${token}` },
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
+
+    const response = await axios.get(`${baseURL}/api/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
     });
 
     return response.status === 200;
