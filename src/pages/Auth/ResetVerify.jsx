@@ -4,6 +4,7 @@ import { MailCheck, ArrowLeft, Loader2 } from "lucide-react";
 import api from "../../utils/api";
 import FormError from "../../components/FormError";
 import handleApiError from "../../utils/handleApiError";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ResetVerify() {
   const navigate = useNavigate();
@@ -45,6 +46,9 @@ export default function ResetVerify() {
     if (/^\d{6}$/.test(pasted)) {
       setOtp(pasted.split(""));
       inputRefs.current[5].focus();
+      toast.success("Code pasted successfully!");
+    } else {
+      toast.error("Please paste a valid 6-digit code");
     }
   };
 
@@ -56,12 +60,16 @@ export default function ResetVerify() {
     const code = otp.join("");
 
     if (code.length < 6) {
-      setError("Please enter all 6 digits of the code.");
+      const msg = "Please enter all 6 digits of the code.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
     if (!email) {
-      setError("Missing email. Please go back and re-enter your email.");
+      const msg = "Missing email. Please go back and re-enter your email.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -76,10 +84,17 @@ export default function ResetVerify() {
       localStorage.setItem("reset_email", email);
       localStorage.setItem("otp_verified", "true");
 
-      setMessage("Verification successful! Redirecting...");
+      const successMsg = "Verification successful! Redirecting...";
+      setMessage(successMsg);
+      toast.success(successMsg);
+      
       setTimeout(() => navigate("/set-new-password"), 1500);
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Invalid or expired code. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -88,7 +103,9 @@ export default function ResetVerify() {
   // Resend OTP
   const handleResend = async () => {
     if (!email) {
-      setError("Missing email. Please go back and re-enter your email.");
+      const msg = "Missing email. Please go back and re-enter your email.";
+      setError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -98,9 +115,19 @@ export default function ResetVerify() {
 
     try {
       await api.post("/password/reset/code", { email });
-      setMessage(`A new code has been sent to ${email}. It expires in 10 minutes.`);
+      const successMsg = `A new code has been sent to ${email}. It expires in 10 minutes.`;
+      setMessage(successMsg);
+      toast.success("New code sent successfully!");
+      
+      // Clear OTP inputs
+      setOtp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to resend code. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setResending(false);
     }
@@ -108,6 +135,28 @@ export default function ResetVerify() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">

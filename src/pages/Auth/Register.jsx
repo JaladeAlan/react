@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, UserPlus } from "lucide-react";
 import api from "../../utils/api";
@@ -67,7 +67,7 @@ export default function Register() {
     } catch (err) {
       console.error("Full error:", err.response);
       if (err.response?.status === 422) {
-        const { errors } = err.response.data;
+        const errors = err.response.data?.errors;
         if (errors) {
           Object.values(errors).forEach((msgs) =>
             msgs.forEach((msg) => toast.error(msg))
@@ -76,7 +76,10 @@ export default function Register() {
           toast.error("Validation failed. Please check your input.");
         }
       } else {
-        toast.error("Registration failed. Please try again.");
+        const errorMessage = err.response?.data?.message || 
+                             err.response?.data?.error || 
+                             "Registration failed. Please try again.";
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -85,6 +88,28 @@ export default function Register() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
@@ -328,4 +353,4 @@ export default function Register() {
       </div>
     </div>
   );
-} 
+}

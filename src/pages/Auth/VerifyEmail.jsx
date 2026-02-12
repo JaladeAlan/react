@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MailCheck, Loader2, ArrowLeft } from "lucide-react";
 import api from "../../utils/api";
-import FormError from "../../components/FormError";
-import handleApiError from "../../utils/handleApiError";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function VerifyEmail() {
   const [otp, setOtp] = useState(Array(6).fill(""));
@@ -51,6 +50,9 @@ export default function VerifyEmail() {
     if (/^\d{6}$/.test(pasted)) {
       setOtp(pasted.split(""));
       inputRefs.current[5].focus();
+      toast.success("Code pasted successfully!");
+    } else {
+      toast.error("Please paste a valid 6-digit code");
     }
   };
 
@@ -60,7 +62,10 @@ export default function VerifyEmail() {
     const code = otp.join("");
 
     if (code.length !== 6) {
-      return setError("Please enter all 6 digits.");
+      const msg = "Please enter all 6 digits.";
+      setError(msg);
+      toast.error(msg);
+      return;
     }
 
     setLoading(true);
@@ -69,12 +74,18 @@ export default function VerifyEmail() {
 
     try {
       await api.post("/email/verify/code", { email, verification_code: code });
-      setMessage("Email verified successfully!");
+      const successMsg = "Email verified successfully!";
+      setMessage(successMsg);
+      toast.success(successMsg);
       localStorage.removeItem("pending_email");
 
       setTimeout(() => navigate("/email-verified"), 1500);
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Invalid or expired code. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -90,10 +101,20 @@ export default function VerifyEmail() {
 
     try {
       await api.post("/email/resend-verification", { email });
-      setMessage("Verification code sent!");
+      const successMsg = "Verification code sent!";
+      setMessage(successMsg);
+      toast.success(successMsg);
       setCooldown(60);
+      
+      // Clear OTP inputs
+      setOtp(Array(6).fill(""));
+      inputRefs.current[0]?.focus();
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to resend code. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -101,6 +122,28 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">

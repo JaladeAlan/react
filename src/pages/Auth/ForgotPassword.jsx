@@ -4,6 +4,7 @@ import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import api from "../../utils/api";
 import handleApiError from "../../utils/handleApiError";
 import FormError from "../../components/FormError";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -23,7 +24,9 @@ export default function ForgotPassword() {
     try {
       const res = await api.post("/password/reset/code", { email });
 
-      setMessage(res.data.message || "A reset code has been sent to your email.");
+      const successMessage = res.data.message || "A reset code has been sent to your email.";
+      setMessage(successMessage);
+      toast.success(successMessage);
 
       // Save email for next step
       localStorage.setItem("reset_email", email);
@@ -33,7 +36,16 @@ export default function ForgotPassword() {
         navigate("/reset-verify", { state: { email } });
       }, 1500);
     } catch (err) {
-      handleApiError(err, setError, setFieldErrors);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to send reset code. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Handle field errors if any
+      if (err.response?.data?.errors) {
+        setFieldErrors(err.response.data.errors);
+      }
     } finally {
       setLoading(false);
     }
@@ -41,6 +53,28 @@ export default function ForgotPassword() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">

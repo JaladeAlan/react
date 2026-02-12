@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react";
 import api from "../../utils/api";
-import FormError from "../../components/FormError";
-import handleApiError from "../../utils/handleApiError";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function SetNewPassword() {
   const [form, setForm] = useState({
@@ -23,6 +22,7 @@ export default function SetNewPassword() {
   // Redirect if no email or OTP not verified
   useEffect(() => {
     if (!email || otpVerified !== "true") {
+      toast.error("Please complete the verification process first.");
       navigate("/forgot-password");
     }
   }, [email, otpVerified, navigate]);
@@ -41,11 +41,17 @@ export default function SetNewPassword() {
     setMessage("");
 
     if (form.password !== form.password_confirmation) {
-      return setError("Passwords do not match.");
+      const msg = "Passwords do not match.";
+      setError(msg);
+      toast.error(msg);
+      return;
     }
 
     if (form.password.length < 8) {
-      return setError("Password must be at least 8 characters long.");
+      const msg = "Password must be at least 8 characters long.";
+      setError(msg);
+      toast.error(msg);
+      return;
     }
 
     try {
@@ -53,14 +59,20 @@ export default function SetNewPassword() {
 
       await api.post("/password/reset", { email, ...form });
 
-      setMessage("Password reset successful! Redirecting to login...");
+      const successMsg = "Password reset successful! Redirecting to login...";
+      setMessage(successMsg);
+      toast.success(successMsg);
 
       localStorage.removeItem("reset_email");
       localStorage.removeItem("otp_verified");
 
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      handleApiError(err, setError);
+      const errorMessage = err.response?.data?.message || 
+                           err.response?.data?.error || 
+                           "Failed to reset password. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -68,6 +80,28 @@ export default function SetNewPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          success: {
+            duration: 4000,
+            style: {
+              background: "#10b981",
+              color: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: "#ef4444",
+              color: "#fff",
+            },
+          },
+        }}
+      />
+
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
