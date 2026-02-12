@@ -1,11 +1,13 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+import toast from "react-hot-toast";
 
 export default function Header() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -37,6 +39,12 @@ export default function Header() {
   const handleLogout = () => {
     setMenuOpen(false);
     logout();
+    
+    // Show logout toast
+    toast.success("Logged out successfully. See you soon! 👋", {
+      duration: 3000,
+      position: "top-center",
+    });
   };
 
   return (
@@ -73,7 +81,7 @@ export default function Header() {
               <NotificationBell />
 
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="text-red-500 hover:text-red-600 font-medium transition-colors"
                 aria-label="Logout"
               >

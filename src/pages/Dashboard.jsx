@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../utils/api";
 import { TrendingUp, Wallet, MapPin, Activity, ArrowUpRight } from "lucide-react";
@@ -46,6 +46,7 @@ const formatCurrency = (amount) => {
 export default function Dashboard() {
   const { user, loading: loadingUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [stats, setStats] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -54,6 +55,21 @@ export default function Dashboard() {
 
   const cache = useRef({ stats: null, transactions: null });
   const hasFetchedRef = useRef(false);
+  const hasShownToastRef = useRef(false);
+
+  // Show success toast on mount if coming from login
+  useEffect(() => {
+    if (location.state?.loginSuccess && !hasShownToastRef.current) {
+      toast.success("Login successful! Welcome back 🎉", {
+        duration: 3000,
+        position: "top-center",
+      });
+      hasShownToastRef.current = true;
+      
+      // Clear the state using window.history to avoid triggering navigation
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -99,11 +115,7 @@ export default function Dashboard() {
 
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
-          toast.error("Session expired. Please log in again.", {
-            duration: 5000,
-            position: "top-center",
-          });
-          navigate("/login", { replace: true });
+          navigate("/login", { replace: true, state: { sessionExpired: true } });
         } else {
           toast.error("Failed to load dashboard data.", {
             duration: 5000,
@@ -123,12 +135,6 @@ export default function Dashboard() {
       hasFetchedRef.current = false;
     };
   }, [user, navigate]);
-
-  // Calculate profit/loss percentage
-  // const profitLoss = stats
-  //   ? ((stats.balance - stats.total_invested) / stats.total_invested) * 100
-  //   : 0;
-  // const isProfit = profitLoss >= 0;
 
   if (loadingUser) {
     return (
@@ -184,8 +190,6 @@ export default function Dashboard() {
                 title="Total Balance"
                 value={formatCurrency(stats?.balance)}
                 fullValue={`₦${Number(stats?.balance ?? 0).toLocaleString()}`}
-                // trend={isProfit ? "up" : "down"}
-                // trendValue={`${profitLoss.toFixed(1)}%`}
               />
               <StatCard
                 icon={<TrendingUp size={24} className="text-green-600" />}

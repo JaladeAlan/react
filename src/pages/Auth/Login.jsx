@@ -31,16 +31,8 @@ export default function Login() {
     try {
       await login(form.email, form.password);
       
-      // Show success toast
-      toast.success("Login successful! Welcome back 🎉", {
-        duration: 3000,
-        position: "top-center",
-      });
-      
-      // Small delay to show toast before navigation
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 500);
+      // Navigate immediately with success state
+      navigate("/dashboard", { state: { loginSuccess: true } });
     } catch (err) {
       handleApiError(err, setError, setFieldErrors);
       
@@ -190,10 +182,11 @@ export default function Login() {
 
           {/* Register Link */}
           <p className="text-center text-sm mt-5 sm:mt-6 text-gray-600">
-            Don't have an account?{" "}
+            Don't have an account?
+            <br className="sm:hidden" />
             <Link 
               to="/register" 
-              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors sm:ml-1"
             >
               Create Account
             </Link>
