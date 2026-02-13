@@ -6,7 +6,6 @@ import {
   useRef,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "react-toastify";
 import api from "../utils/api";
 import { resetNotificationCache } from "../services/notificationService";
 
@@ -39,7 +38,6 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error("Auth check failed:", err);
 
-      // reset notifications on auth failure
       resetNotificationCache();
 
       localStorage.removeItem("token");
@@ -47,7 +45,6 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
 
       localStorage.setItem("redirectAfterLogin", location.pathname);
-      toast.error("Session expired. Please log in again.");
       navigate("/login", { replace: true });
     } finally {
       setLoading(false);
@@ -81,8 +78,6 @@ export const AuthProvider = ({ children }) => {
         await checkAuth();
       }
 
-      toast.success("Login successful!");
-
       const redirectPath =
         localStorage.getItem("redirectAfterLogin") || "/dashboard";
       localStorage.removeItem("redirectAfterLogin");
@@ -90,7 +85,6 @@ export const AuthProvider = ({ children }) => {
       navigate(redirectPath, { replace: true });
     } catch (err) {
       console.error("Login error:", err);
-      toast.error("Login failed. Please check your credentials.");
       throw err;
     }
   };
@@ -105,7 +99,6 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common.Authorization;
 
     setUser(null);
-    toast.info("Logged out successfully!");
     navigate("/login", { replace: true });
   };
 
