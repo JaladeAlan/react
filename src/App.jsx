@@ -35,11 +35,16 @@ import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 import NotificationsPage from "./pages/NotificationsPage";
 import KycVerification from "./pages/Auth/KycVerification";
+import ReferralDashboard from './pages/Auth/ReferralDashboard';
 
+// Admin Pages
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 import CreateLand from "./pages/Admin/CreateLand";
 import EditLand from "./pages/Admin/EditLand";
 import AdminLands from "./pages/Admin/Land";
 import AdminGuard from "./components/AdminGuard";
+import AdminKycManagement from './pages/Admin/AdminKycManagement';
+import AdminReferralManagement from './pages/Admin/AdminReferralManagement';
 
 // ------------------------------------------------------------
 // Axios interceptors with React Router
@@ -126,6 +131,14 @@ function AnimatedRoutes() {
                 }
               />
               <Route
+                path="/referrals"
+                element={
+                  <ProtectedRoute>
+                    <ReferralDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lands"
                 element={
                   <ProtectedRoute>
@@ -190,6 +203,37 @@ function AnimatedRoutes() {
                 }
               />
 
+              {/* Admin Routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <AdminDashboard />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/kyc"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <AdminKycManagement />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/referrals"
+                element={
+                  <ProtectedRoute>
+                    <AdminGuard>
+                      <AdminReferralManagement />
+                    </AdminGuard>
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/lands"
                 element={
@@ -256,8 +300,8 @@ export default function App() {
             reverseOrder={false}
             gutter={8}
             containerStyle={{
-              top: 80, // Below header (header is at z-[9000] with height ~64px)
-              zIndex: 99999, // Above everything
+              top: 80,
+              zIndex: 99999,
             }}
             toastOptions={{
               duration: 5000,
