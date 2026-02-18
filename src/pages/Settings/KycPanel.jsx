@@ -7,7 +7,7 @@ import {
   Eye, Smile, ArrowLeft, ArrowRight, RotateCcw, Video, VideoOff
 } from "lucide-react";
 
-const STEPS = ["Personal", "Address", "Identity", "Documents", "Review"];
+const STEPS = ["Personal", "Address", "Identity", "Docs", "Review"];
 
 const ID_TYPES = [
   { value: "nin",             label: "National Identity Number (NIN)" },
@@ -42,7 +42,7 @@ function shuffle(arr) {
   return a;
 }
 
-const inputCls = "w-full bg-white border border-stone-200 text-stone-800 placeholder-stone-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-sm";
+const inputCls = "w-full bg-white border border-stone-200 text-stone-800 placeholder-stone-400 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-sm";
 const selectCls = inputCls + " appearance-none cursor-pointer";
 
 function PromptIcon({ icon, size = 20 }) {
@@ -129,12 +129,12 @@ function LivenessCheck({ onCapture, captured, onRetake }) {
     return (
       <div className="space-y-3">
         <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-300 shadow-md">
-          <img src={url} alt="liveness" className="w-full h-52 object-cover" style={{ transform: "scaleX(-1)" }} />
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+          <img src={url} alt="liveness" className="w-full object-cover" style={{ transform: "scaleX(-1)", height: "clamp(160px, 40vw, 220px)" }} />
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">
             <CheckCircle size={11} /> Liveness verified
           </div>
         </div>
-        <button type="button" onClick={onRetake} className="flex items-center gap-2 text-sm text-stone-400 hover:text-amber-600 font-semibold transition-colors">
+        <button type="button" onClick={onRetake} className="flex items-center gap-2 text-sm text-stone-400 hover:text-amber-600 font-semibold transition-colors py-1">
           <RotateCcw size={13} /> Retake
         </button>
       </div>
@@ -199,56 +199,84 @@ function LivenessCheck({ onCapture, captured, onRetake }) {
         {isVideo && currentPrompt && (
           <motion.div key={`${promptIdx}-${phase}`}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-full bg-white border border-amber-200 shadow-sm flex items-center justify-center shrink-0">
-              <PromptIcon icon={currentPrompt.icon} size={17} />
+            className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 flex items-center gap-4 shadow-sm">
+            <div className="w-11 h-11 rounded-full bg-white border border-amber-200 shadow-sm flex items-center justify-center shrink-0">
+              <PromptIcon icon={currentPrompt.icon} size={18} />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-amber-600 font-bold uppercase tracking-wider mb-0.5">Step {promptIdx + 1} of {prompts.length}</p>
-              <p className="text-stone-800 font-semibold text-base leading-snug">{currentPrompt.text}</p>
-              <p className="text-stone-400 text-xs mt-0.5">{phase === "active" ? "Press \"I'm Ready\" when set" : "Hold still, capturing…"}</p>
+              <p className="text-stone-800 font-semibold text-sm leading-snug">{currentPrompt.text}</p>
+              <p className="text-stone-400 text-xs mt-0.5">{phase === "active" ? "Tap \"I'm Ready\" when set" : "Hold still, capturing…"}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {phase === "idle" && <button type="button" onClick={startCamera} className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all active:scale-95 shadow-sm"><Camera size={16} /> Start Liveness Check</button>}
-      {phase === "active" && <button type="button" onClick={beginCountdown} className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all active:scale-95 shadow-sm">I'm Ready</button>}
-      {phase === "error" && <button type="button" onClick={startCamera} className="w-full flex items-center justify-center gap-2 bg-stone-700 hover:bg-stone-600 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all"><RotateCcw size={14} /> Try Again</button>}
-      {phase === "countdown" && <div className="w-full flex items-center justify-center gap-2 bg-stone-100 text-stone-400 font-medium text-sm px-5 py-3 rounded-xl select-none">Capturing…</div>}
-      {phase === "idle" && <p className="text-stone-400 text-xs leading-relaxed text-center">Your camera is used only for identity verification. No video is recorded — only a single captured frame is submitted.</p>}
+      {phase === "idle" && (
+        <button type="button" onClick={startCamera}
+          className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white font-bold text-sm px-5 py-4 rounded-xl transition-all active:scale-95 shadow-sm touch-manipulation">
+          <Camera size={16} /> Start Liveness Check
+        </button>
+      )}
+      {phase === "active" && (
+        <button type="button" onClick={beginCountdown}
+          className="w-full flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 active:bg-stone-900 text-white font-bold text-sm px-5 py-4 rounded-xl transition-all active:scale-95 shadow-sm touch-manipulation">
+          I'm Ready
+        </button>
+      )}
+      {phase === "error" && (
+        <button type="button" onClick={startCamera}
+          className="w-full flex items-center justify-center gap-2 bg-stone-700 hover:bg-stone-600 text-white font-bold text-sm px-5 py-4 rounded-xl transition-all touch-manipulation">
+          <RotateCcw size={14} /> Try Again
+        </button>
+      )}
+      {phase === "countdown" && (
+        <div className="w-full flex items-center justify-center gap-2 bg-stone-100 text-stone-400 font-medium text-sm px-5 py-4 rounded-xl select-none">
+          Capturing…
+        </div>
+      )}
+      {phase === "idle" && (
+        <p className="text-stone-400 text-xs leading-relaxed text-center px-2">
+          Your camera is used only for identity verification. No video is recorded — only a single captured frame is submitted.
+        </p>
+      )}
     </div>
   );
 }
 
 function StatusBanner({ kyc, onResubmit }) {
   const cfg = {
-    pending:  { icon: <Clock size={20} />,      title: "Under Review",          body: "Your documents are being reviewed. This typically takes 1–2 business days.", bg: "bg-amber-50",   border: "border-amber-200",   accent: "text-amber-700",   dot: "bg-amber-500"   },
-    approved: { icon: <CheckCircle size={20} />, title: "Verified",              body: "Identity verified. You have full access to all platform features.",           bg: "bg-emerald-50", border: "border-emerald-200", accent: "text-emerald-700", dot: "bg-emerald-500" },
-    rejected: { icon: <XCircle size={20} />,    title: "Verification Failed",   body: null,                                                                           bg: "bg-red-50",    border: "border-red-200",     accent: "text-red-700",     dot: "bg-red-500"     },
-    resubmit: { icon: <RefreshCw size={20} />,  title: "Resubmission Required", body: null,                                                                           bg: "bg-orange-50", border: "border-orange-200",  accent: "text-orange-700",  dot: "bg-orange-500"  },
+    pending:  { icon: <Clock size={18} />,      title: "Under Review",          body: "Your documents are being reviewed. This typically takes 1–2 business days.", bg: "bg-amber-50",   border: "border-amber-200",   accent: "text-amber-700",   dot: "bg-amber-500"   },
+    approved: { icon: <CheckCircle size={18} />, title: "Verified",              body: "Identity verified. You have full access to all platform features.",           bg: "bg-emerald-50", border: "border-emerald-200", accent: "text-emerald-700", dot: "bg-emerald-500" },
+    rejected: { icon: <XCircle size={18} />,    title: "Verification Failed",   body: null,                                                                           bg: "bg-red-50",    border: "border-red-200",     accent: "text-red-700",     dot: "bg-red-500"     },
+    resubmit: { icon: <RefreshCw size={18} />,  title: "Resubmission Required", body: null,                                                                           bg: "bg-orange-50", border: "border-orange-200",  accent: "text-orange-700",  dot: "bg-orange-500"  },
   };
   const c = cfg[kyc.status];
   if (!c) return null;
   return (
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border ${c.bg} ${c.border} p-5 mb-8 shadow-sm`}>
-      <div className="flex items-start gap-4">
-        <div className={`mt-0.5 ${c.accent}`}>{c.icon}</div>
+      className={`rounded-2xl border ${c.bg} ${c.border} p-4 mb-6 shadow-sm`}>
+      <div className="flex items-start gap-3">
+        <div className={`mt-0.5 shrink-0 ${c.accent}`}>{c.icon}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`w-2 h-2 rounded-full animate-pulse ${c.dot}`} />
-            <p className={`font-bold text-sm tracking-wide uppercase ${c.accent}`}>{c.title}</p>
+            <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${c.dot}`} />
+            <p className={`font-bold text-xs tracking-wide uppercase ${c.accent}`}>{c.title}</p>
           </div>
           {c.body && <p className="text-stone-600 text-sm leading-relaxed">{c.body}</p>}
-          {kyc.rejection_reason && <p className="text-stone-600 text-sm leading-relaxed"><span className="text-stone-400">Reason: </span>{kyc.rejection_reason}</p>}
+          {kyc.rejection_reason && (
+            <p className="text-stone-600 text-sm leading-relaxed"><span className="text-stone-400">Reason: </span>{kyc.rejection_reason}</p>
+          )}
           {(kyc.status === "rejected" || kyc.status === "resubmit") && (
-            <button onClick={onResubmit} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white bg-stone-800 hover:bg-stone-700 transition-colors px-4 py-1.5 rounded-lg">
+            <button onClick={onResubmit}
+              className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-white bg-stone-800 hover:bg-stone-700 px-4 py-2 rounded-lg touch-manipulation">
               <RefreshCw size={13} /> Submit Again
             </button>
           )}
           {kyc.submission_date && (
-            <p className="text-stone-400 text-xs mt-3">Submitted {new Date(kyc.submission_date).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}</p>
+            <p className="text-stone-400 text-xs mt-2">
+              Submitted {new Date(kyc.submission_date).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
+            </p>
           )}
         </div>
       </div>
@@ -263,23 +291,36 @@ function FileDropZone({ label, sublabel, name, required = false, value, onChange
   const onDrop = (e) => { e.preventDefault(); setDrag(false); const file = e.dataTransfer.files[0]; if (file?.type.startsWith("image/")) onChange(name, file); };
   return (
     <div>
-      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">{label} {required && <span className="text-red-400">*</span>}</label>
-      {sublabel && <p className="text-stone-400 text-xs mb-3">{sublabel}</p>}
+      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      {sublabel && <p className="text-stone-400 text-xs mb-3 leading-relaxed">{sublabel}</p>}
       {preview ? (
         <div className="relative rounded-xl overflow-hidden border border-stone-200 group shadow-sm">
-          <img src={preview} alt="preview" className="w-full h-44 object-cover" />
-          <div className="absolute inset-0 bg-stone-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <button type="button" onClick={() => onChange(name, null)} className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2"><X size={14} /></button>
+          <img src={preview} alt="preview" className="w-full object-cover" style={{ height: "clamp(140px, 35vw, 180px)" }} />
+          <div className="absolute inset-0 bg-stone-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button type="button" onClick={() => onChange(name, null)}
+              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2.5 touch-manipulation">
+              <X size={16} />
+            </button>
           </div>
+          {/* Mobile-friendly remove button always visible */}
+          <button type="button" onClick={() => onChange(name, null)}
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 shadow-md touch-manipulation sm:hidden">
+            <X size={12} />
+          </button>
         </div>
       ) : (
         <div onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-xl h-44 flex flex-col items-center justify-center cursor-pointer select-none transition-all ${drag ? "border-amber-400 bg-amber-50" : "border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-white"}`}>
-          <Upload size={22} className="text-stone-300 mb-3" />
-          <p className="text-stone-500 text-sm font-medium">Drop image here</p>
-          <p className="text-stone-400 text-xs mt-1">or click to browse · JPG, PNG · max 5MB</p>
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => onChange(name, e.target.files[0] || null)} />
+          className={`border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer select-none transition-all touch-manipulation
+            ${drag ? "border-amber-400 bg-amber-50" : "border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-white"}`}
+          style={{ height: "clamp(130px, 30vw, 176px)" }}>
+          <Upload size={22} className="text-stone-300 mb-2" />
+          <p className="text-stone-500 text-sm font-medium">Tap to upload</p>
+          <p className="text-stone-400 text-xs mt-1 text-center px-4">JPG or PNG · max 5MB</p>
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={e => onChange(name, e.target.files[0] || null)} />
         </div>
       )}
     </div>
@@ -289,48 +330,82 @@ function FileDropZone({ label, sublabel, name, required = false, value, onChange
 function Field({ label, required, error, children }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">{label} {required && <span className="text-red-400">*</span>}</label>
+      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-2">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
       {children}
       {error && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><AlertCircle size={11} />{error}</p>}
     </div>
   );
 }
 
+/* Compact dot stepper for mobile, rail for desktop */
 function ProgressRail({ current }) {
   return (
-    <div className="flex items-center mb-10">
-      {STEPS.map((step, i) => {
-        const done = i < current, active = i === current;
-        return (
-          <div key={step} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
+    <>
+      {/* Mobile: dot strip */}
+      <div className="flex items-center justify-between mb-8 sm:hidden px-1">
+        {STEPS.map((step, i) => {
+          const done = i < current, active = i === current;
+          return (
+            <div key={step} className="flex flex-col items-center gap-1.5 flex-1">
               <motion.div
-                animate={{ backgroundColor: done ? "#f59e0b" : active ? "#fff" : "#f5f5f4", borderColor: done || active ? "#f59e0b" : "#d6d3d1", scale: active ? 1.1 : 1 }}
+                animate={{
+                  backgroundColor: done ? "#f59e0b" : active ? "#ffffff" : "#f5f5f4",
+                  borderColor: done || active ? "#f59e0b" : "#d6d3d1",
+                  scale: active ? 1.15 : 1,
+                }}
                 transition={{ duration: 0.25 }}
-                className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold shadow-sm"
-                style={{ color: done ? "#fff" : active ? "#f59e0b" : "#a8a29e" }}>
-                {done ? <CheckCircle size={14} /> : i + 1}
+                className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold shadow-sm"
+                style={{ color: done ? "#fff" : active ? "#f59e0b" : "#a8a29e" }}
+              >
+                {done ? <CheckCircle size={12} /> : i + 1}
               </motion.div>
-              <span className={`text-xs mt-1.5 font-semibold whitespace-nowrap ${active ? "text-amber-600" : done ? "text-stone-500" : "text-stone-300"}`}>{step}</span>
+              <span className={`text-xs font-semibold leading-tight text-center
+                ${active ? "text-amber-600" : done ? "text-stone-400" : "text-stone-300"}`}
+                style={{ fontSize: "10px" }}>
+                {step}
+              </span>
             </div>
-            {i < STEPS.length - 1 && (
-              <div className="flex-1 h-0.5 mx-2 mb-5 bg-stone-200 rounded-full overflow-hidden">
-                <motion.div className="h-full bg-amber-400 rounded-full" animate={{ width: done ? "100%" : "0%" }} transition={{ duration: 0.4 }} />
+          );
+        })}
+      </div>
+
+      {/* Desktop: rail */}
+      <div className="hidden sm:flex items-center mb-10">
+        {STEPS.map((step, i) => {
+          const done = i < current, active = i === current;
+          return (
+            <div key={step} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center">
+                <motion.div
+                  animate={{ backgroundColor: done ? "#f59e0b" : active ? "#fff" : "#f5f5f4", borderColor: done || active ? "#f59e0b" : "#d6d3d1", scale: active ? 1.1 : 1 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold shadow-sm"
+                  style={{ color: done ? "#fff" : active ? "#f59e0b" : "#a8a29e" }}>
+                  {done ? <CheckCircle size={14} /> : i + 1}
+                </motion.div>
+                <span className={`text-xs mt-1.5 font-semibold whitespace-nowrap ${active ? "text-amber-600" : done ? "text-stone-500" : "text-stone-300"}`}>{step}</span>
               </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+              {i < STEPS.length - 1 && (
+                <div className="flex-1 h-0.5 mx-2 mb-5 bg-stone-200 rounded-full overflow-hidden">
+                  <motion.div className="h-full bg-amber-400 rounded-full" animate={{ width: done ? "100%" : "0%" }} transition={{ duration: 0.4 }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
 function ReviewRow({ label, value }) {
   if (!value) return null;
   return (
-    <div className="flex justify-between items-start py-2.5 border-b border-stone-100 last:border-0">
-      <span className="text-stone-400 text-sm">{label}</span>
-      <span className="text-stone-700 text-sm font-semibold text-right max-w-[60%]">{value}</span>
+    <div className="flex justify-between items-start py-3 border-b border-stone-100 last:border-0 gap-3">
+      <span className="text-stone-400 text-sm shrink-0">{label}</span>
+      <span className="text-stone-700 text-sm font-semibold text-right break-all">{value}</span>
     </div>
   );
 }
@@ -338,8 +413,8 @@ function ReviewRow({ label, value }) {
 function StepHeader({ icon, title }) {
   return (
     <div className="flex items-center gap-2.5 mb-5 pb-4 border-b border-stone-100">
-      <span className="text-amber-500">{icon}</span>
-      <h2 className="text-xl text-stone-800 font-semibold" style={{ fontFamily: "Georgia, serif" }}>{title}</h2>
+      <span className="text-amber-500 shrink-0">{icon}</span>
+      <h2 className="text-lg sm:text-xl text-stone-800 font-semibold leading-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>{title}</h2>
     </div>
   );
 }
@@ -347,14 +422,13 @@ function StepHeader({ icon, title }) {
 const stepAnim = { initial: { opacity: 0, x: 18 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -18 }, transition: { duration: 0.22 } };
 
 export default function KycVerification() {
-  const [kycStatus, setKycStatus]   = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [showForm, setShowForm]     = useState(false);
-  const [step, setStep]             = useState(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [kycStatus, setKycStatus]     = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [showForm, setShowForm]       = useState(false);
+  const [step, setStep]               = useState(0);
+  const [submitting, setSubmitting]   = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [submitted, setSubmitted]   = useState(false);
-  const [errors, setErrors]         = useState({});
+  const [errors, setErrors]           = useState({});
 
   const [form, setForm] = useState({
     full_name: "", date_of_birth: "", phone_number: "",
@@ -368,7 +442,7 @@ export default function KycVerification() {
       setKycStatus({ status: "not_submitted", is_verified: false });
       setShowForm(true);
       setLoading(false);
-    }, 800);
+    }, 700);
   }, []);
 
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -405,7 +479,7 @@ export default function KycVerification() {
     setSubmitting(true); setSubmitError("");
     await new Promise(r => setTimeout(r, 1800));
     setKycStatus({ status: "pending", submission_date: new Date().toISOString() });
-    setShowForm(false); setSubmitted(true); setSubmitting(false);
+    setShowForm(false); setSubmitting(false);
   };
 
   const idTypeLabel = ID_TYPES.find(t => t.value === form.id_type)?.label || "—";
@@ -421,92 +495,114 @@ export default function KycVerification() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-800" style={{ fontFamily: "'Lato', 'Helvetica Neue', sans-serif" }}>
-      <div className="fixed inset-0 pointer-events-none"
+      {/* Dot texture — hidden on mobile for performance */}
+      <div className="fixed inset-0 pointer-events-none hidden sm:block"
         style={{ backgroundImage: "radial-gradient(circle, #d6d3d1 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.45 }} />
+
+      {/* Top bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 z-50" />
 
-      <div className="relative max-w-2xl mx-auto px-4 py-14">
-        <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+      <div className="relative max-w-2xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:py-14">
+
+        {/* Page header */}
+        <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 shadow-sm flex items-center justify-center">
-              <Shield size={18} className="text-amber-600" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 border border-amber-200 shadow-sm flex items-center justify-center shrink-0">
+              <Shield size={16} className="text-amber-600" />
             </div>
             <p className="text-amber-600 text-xs font-bold uppercase tracking-widest">Identity Verification</p>
           </div>
-          <h1 className="text-4xl text-stone-800 leading-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+          <h1 className="text-3xl sm:text-4xl text-stone-800 leading-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
             Verify Your Identity
           </h1>
-          <p className="text-stone-500 mt-2 text-sm leading-relaxed max-w-md">
-            Complete KYC verification to unlock withdrawals, higher investment limits, and full platform access.
+          <p className="text-stone-500 mt-2 text-sm leading-relaxed">
+            Complete KYC verification to unlock withdrawals, higher limits, and full platform access.
           </p>
         </motion.div>
 
+        {/* Status banner */}
         {kycStatus && kycStatus.status !== "not_submitted" && (
-          <StatusBanner kyc={kycStatus} onResubmit={() => { setShowForm(true); setStep(0); setSubmitted(false); }} />
+          <StatusBanner kyc={kycStatus} onResubmit={() => { setShowForm(true); setStep(0); }} />
         )}
 
+        {/* Form card */}
         <AnimatePresence mode="wait">
           {showForm && (
-            <motion.div key="form" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }} transition={{ duration: 0.3 }}
-              className="bg-white rounded-3xl border border-stone-200 shadow-xl shadow-stone-200/60 p-8">
+            <motion.div key="form"
+              initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-xl shadow-stone-200/60 p-5 sm:p-8">
+
               <ProgressRail current={step} />
 
               <AnimatePresence mode="wait">
+
                 {step === 0 && (
-                  <motion.div key="s0" {...stepAnim} className="space-y-5">
+                  <motion.div key="s0" {...stepAnim} className="space-y-4 sm:space-y-5">
                     <StepHeader icon={<User size={16} />} title="Personal Information" />
                     <Field label="Full Legal Name" required error={errors.full_name}>
-                      <input className={inputCls} placeholder="As it appears on your ID" value={form.full_name} onChange={e => setField("full_name", e.target.value)} />
+                      <input className={inputCls} placeholder="As it appears on your ID"
+                        autoComplete="name" autoCapitalize="words"
+                        value={form.full_name} onChange={e => setField("full_name", e.target.value)} />
                     </Field>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field label="Date of Birth" required error={errors.date_of_birth}>
-                        <input type="date" className={inputCls} max={new Date().toISOString().split("T")[0]} value={form.date_of_birth} onChange={e => setField("date_of_birth", e.target.value)} />
-                      </Field>
-                      <Field label="Phone Number" required error={errors.phone_number}>
-                        <input className={inputCls} placeholder="+234 800 000 0000" value={form.phone_number} onChange={e => setField("phone_number", e.target.value)} />
-                      </Field>
-                    </div>
+                    <Field label="Date of Birth" required error={errors.date_of_birth}>
+                      <input type="date" className={inputCls}
+                        max={new Date().toISOString().split("T")[0]}
+                        value={form.date_of_birth} onChange={e => setField("date_of_birth", e.target.value)} />
+                    </Field>
+                    <Field label="Phone Number" required error={errors.phone_number}>
+                      <input className={inputCls} placeholder="+234 800 000 0000"
+                        type="tel" inputMode="tel" autoComplete="tel"
+                        value={form.phone_number} onChange={e => setField("phone_number", e.target.value)} />
+                    </Field>
                   </motion.div>
                 )}
 
                 {step === 1 && (
-                  <motion.div key="s1" {...stepAnim} className="space-y-5">
+                  <motion.div key="s1" {...stepAnim} className="space-y-4 sm:space-y-5">
                     <StepHeader icon={<MapPin size={16} />} title="Residential Address" />
                     <Field label="Street Address" required error={errors.address}>
-                      <textarea className={inputCls + " resize-none h-20"} placeholder="House number, street name, landmark"
+                      <textarea className={inputCls + " resize-none"} style={{ height: "80px" }}
+                        placeholder="House number, street name, landmark"
+                        autoComplete="street-address"
                         value={form.address} onChange={e => setField("address", e.target.value)} />
                     </Field>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field label="City" required error={errors.city}>
-                        <input className={inputCls} placeholder="e.g. Lagos" value={form.city} onChange={e => setField("city", e.target.value)} />
-                      </Field>
-                      <Field label="State" required error={errors.state}>
-                        <select className={selectCls} value={form.state} onChange={e => setField("state", e.target.value)}>
-                          <option value="">Select state</option>
-                          {NIGERIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </Field>
-                    </div>
+                    <Field label="City" required error={errors.city}>
+                      <input className={inputCls} placeholder="e.g. Lagos"
+                        autoComplete="address-level2"
+                        value={form.city} onChange={e => setField("city", e.target.value)} />
+                    </Field>
+                    <Field label="State" required error={errors.state}>
+                      <select className={selectCls} value={form.state}
+                        onChange={e => setField("state", e.target.value)}>
+                        <option value="">Select state</option>
+                        {NIGERIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </Field>
                     <Field label="Country">
-                      <input className={inputCls} value={form.country} readOnly style={{ opacity: 0.5, cursor: "not-allowed" }} />
+                      <input className={inputCls} value={form.country} readOnly
+                        style={{ opacity: 0.5, cursor: "not-allowed" }} />
                     </Field>
                   </motion.div>
                 )}
 
                 {step === 2 && (
-                  <motion.div key="s2" {...stepAnim} className="space-y-5">
+                  <motion.div key="s2" {...stepAnim} className="space-y-4 sm:space-y-5">
                     <StepHeader icon={<CreditCard size={16} />} title="Identity Document" />
                     <Field label="Document Type" required error={errors.id_type}>
-                      <select className={selectCls} value={form.id_type} onChange={e => setField("id_type", e.target.value)}>
+                      <select className={selectCls} value={form.id_type}
+                        onChange={e => setField("id_type", e.target.value)}>
                         <option value="">Select document type</option>
                         {ID_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </Field>
                     <Field label="Document Number" required error={errors.id_number}>
-                      <input className={inputCls} placeholder="Enter your document number" value={form.id_number} onChange={e => setField("id_number", e.target.value)} />
+                      <input className={inputCls} placeholder="Enter your document number"
+                        inputMode="text" autoCapitalize="characters"
+                        value={form.id_number} onChange={e => setField("id_number", e.target.value)} />
                     </Field>
                     {form.id_type && (
-                      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3.5">
                         <AlertCircle size={14} className="text-amber-500 mt-0.5 shrink-0" />
                         <p className="text-amber-700 text-xs leading-relaxed">
                           Ensure the number matches exactly what is printed on your {idTypeLabel.toLowerCase()}.
@@ -517,14 +613,20 @@ export default function KycVerification() {
                 )}
 
                 {step === 3 && (
-                  <motion.div key="s3" {...stepAnim} className="space-y-6">
+                  <motion.div key="s3" {...stepAnim} className="space-y-5 sm:space-y-6">
                     <StepHeader icon={<Camera size={16} />} title="Upload Documents" />
-                    <FileDropZone label="ID Front" required sublabel="Clear photo of the front of your document" name="id_front" value={form.id_front} onChange={setFile} />
+                    <FileDropZone label="ID Front" required sublabel="Clear photo of the front of your document"
+                      name="id_front" value={form.id_front} onChange={setFile} />
                     {errors.id_front && <p className="text-red-500 text-xs -mt-3 flex items-center gap-1"><AlertCircle size={11} />{errors.id_front}</p>}
-                    <FileDropZone label="ID Back" sublabel="Back of your document (if applicable)" name="id_back" value={form.id_back} onChange={setFile} />
+                    <FileDropZone label="ID Back" sublabel="Back of your document (if applicable)"
+                      name="id_back" value={form.id_back} onChange={setFile} />
                     <div>
-                      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Liveness Check <span className="text-red-400">*</span></label>
-                      <p className="text-stone-400 text-xs mb-3">You'll be asked to perform 2 short actions to confirm you're a real person. Only a single photo frame is captured — no video is stored.</p>
+                      <label className="block text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">
+                        Liveness Check <span className="text-red-400">*</span>
+                      </label>
+                      <p className="text-stone-400 text-xs mb-3 leading-relaxed">
+                        You'll be asked to perform 2 short actions to confirm you're a real person. Only a single photo frame is captured — no video is stored.
+                      </p>
                       <LivenessCheck captured={form.selfie} onCapture={file => setFile("selfie", file)} onRetake={() => setFile("selfie", null)} />
                       {errors.selfie && <p className="text-red-500 text-xs mt-2 flex items-center gap-1"><AlertCircle size={11} />{errors.selfie}</p>}
                     </div>
@@ -532,7 +634,7 @@ export default function KycVerification() {
                 )}
 
                 {step === 4 && (
-                  <motion.div key="s4" {...stepAnim} className="space-y-5">
+                  <motion.div key="s4" {...stepAnim} className="space-y-4 sm:space-y-5">
                     <StepHeader icon={<CheckCircle size={16} />} title="Review & Submit" />
                     {[
                       { heading: "Personal",  rows: [["Full Name", form.full_name], ["Date of Birth", form.date_of_birth], ["Phone", form.phone_number]] },
@@ -553,22 +655,32 @@ export default function KycVerification() {
                         <p className="text-red-600 text-sm">{submitError}</p>
                       </div>
                     )}
-                    <p className="text-stone-400 text-xs leading-relaxed">By submitting, you confirm all information is accurate and documents belong to you. False submissions may result in account suspension.</p>
+                    <p className="text-stone-400 text-xs leading-relaxed">
+                      By submitting, you confirm all information is accurate and documents belong to you. False submissions may result in account suspension.
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-stone-100">
+              {/* Navigation — sticky on mobile */}
+              <div className="flex items-center justify-between mt-6 pt-5 border-t border-stone-100">
                 {step > 0
-                  ? <button type="button" onClick={prevStep} disabled={submitting} className="flex items-center gap-2 text-stone-400 hover:text-stone-600 text-sm font-semibold transition-colors"><ChevronLeft size={16} /> Back</button>
+                  ? <button type="button" onClick={prevStep} disabled={submitting}
+                      className="flex items-center gap-1.5 text-stone-400 hover:text-stone-600 text-sm font-semibold transition-colors py-2 px-1 touch-manipulation">
+                      <ChevronLeft size={16} /> Back
+                    </button>
                   : <div />
                 }
                 {step < STEPS.length - 1
-                  ? <button type="button" onClick={nextStep} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-sm">Continue <ChevronRight size={16} /></button>
+                  ? <button type="button" onClick={nextStep}
+                      className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white font-bold text-sm px-6 py-3.5 rounded-xl transition-all active:scale-95 shadow-sm touch-manipulation">
+                      Continue <ChevronRight size={16} />
+                    </button>
                   : <button type="button" onClick={handleSubmit} disabled={submitting}
-                      className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-sm">
+                      className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 active:bg-stone-900 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm px-6 py-3.5 rounded-xl transition-all active:scale-95 shadow-sm touch-manipulation">
                       {submitting
-                        ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Submitting…</>
+                        ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Submitting…</>
                         : <><Shield size={14} /> Submit Verification</>}
                     </button>
                 }
@@ -577,13 +689,15 @@ export default function KycVerification() {
           )}
         </AnimatePresence>
 
+        {/* Pending state after submit */}
         {kycStatus?.status === "pending" && !showForm && (
           <StatusBanner kyc={kycStatus} onResubmit={() => { setShowForm(true); setStep(0); }} />
         )}
 
+        {/* Approved state */}
         {kycStatus?.status === "approved" && !showForm && (
           <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-            className="mt-4 text-center py-10 bg-white rounded-3xl border border-stone-200 shadow-xl shadow-stone-200/60">
+            className="mt-4 text-center py-12 bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-xl shadow-stone-200/60 px-6">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-200 mb-4">
               <CheckCircle size={28} className="text-emerald-500" />
             </div>
