@@ -145,7 +145,7 @@ export default function LandDetails() {
       const fallback = "Transaction failed. Try again.";
       const errorMessage = apiMessage || fallback;
       setModalError(errorMessage);
-      toast.error(errorMessage);
+      // Removed duplicate toast.error() - error is already shown in modal
     } finally {
       setModalLoading(false);
     }
