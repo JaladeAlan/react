@@ -7,6 +7,7 @@ import {
   Eye, Smile, ArrowLeft, ArrowRight, RotateCcw, Video, VideoOff,
   ImageIcon,
 } from "lucide-react";
+import api from "../../utils/api";
 
 const STEPS = ["Personal", "Address", "Identity", "Docs", "Liveness", "Review"];
 
@@ -65,13 +66,10 @@ const STILLNESS_THRESHOLD  = 0.004;
 const STILL_CONFIRM_FRAMES = 12;
 
 // ─── Date of Birth Input ──────────────────────────────────────────────────────
-// Uses native <input type="date"> for full mobile support + built-in date picker.
-// The value is stored as YYYY-MM-DD (ISO) internally, matching what the form expects.
 function DobInput({ value, onChange }) {
-  const today     = new Date().toISOString().split("T")[0];          // YYYY-MM-DD
+  const today     = new Date().toISOString().split("T")[0];
   const minDate   = "1900-01-01";
 
-  // Display the chosen date in DD/MM/YYYY when a value exists
   const displayLabel = value
     ? (() => {
         const [y, m, d] = value.split("-");
@@ -81,18 +79,14 @@ function DobInput({ value, onChange }) {
 
   return (
     <div className="relative">
-      {/* Styled visual layer — pointer-events disabled so clicks fall through to the real input */}
       <div className={`flex items-center justify-between bg-white border border-stone-200 rounded-xl shadow-sm px-4 py-3.5 transition-all pointer-events-none select-none ${value ? "text-stone-800" : "text-stone-400"}`}>
         <span className="text-base">{displayLabel || "DD / MM / YYYY"}</span>
-        {/* Calendar icon */}
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 shrink-0">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
           <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="3" y1="10" x2="21" y2="10"/>
         </svg>
       </div>
-
-      {/* Real date input — invisible but positioned over the styled layer */}
       <input
         type="date"
         value={value || ""}
@@ -101,7 +95,7 @@ function DobInput({ value, onChange }) {
         onChange={e => onChange(e.target.value || "")}
         aria-label="Date of birth"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        style={{ fontSize: 16 /* prevents iOS zoom */ }}
+        style={{ fontSize: 16 }}
       />
     </div>
   );
@@ -115,7 +109,6 @@ function FileDropZone({ label, sublabel, name, required = false, value, onChange
 
   const preview = value ? URL.createObjectURL(value) : null;
 
-  // Revoke object URLs to avoid memory leaks
   useEffect(() => {
     return () => { if (preview) URL.revokeObjectURL(preview); };
   }, [preview]);
@@ -366,6 +359,8 @@ function LivenessCheck({ onCapture, captured, onRetake, fullHeight = false }) {
 
   advancePromptRef.current = advancePrompt;
 
+  const lastUsedIconsRef = useRef(new Set());
+
   const startCamera = useCallback(async () => {
     setPhase("requesting");
     setErrorMsg("");
@@ -381,7 +376,15 @@ function LivenessCheck({ onCapture, captured, onRetake, fullHeight = false }) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      const chosen       = shuffle(LIVENESS_PROMPTS).slice(0, 2);
+
+      const excluded = lastUsedIconsRef.current;
+      const preferred = shuffle(LIVENESS_PROMPTS.filter(p => !excluded.has(p.icon)));
+      const fallback  = shuffle(LIVENESS_PROMPTS.filter(p =>  excluded.has(p.icon)));
+      const pool      = [...preferred, ...fallback];
+      const chosen    = pool.slice(0, 2);
+
+      lastUsedIconsRef.current = new Set(chosen.map(p => p.icon));
+
       promptsRef.current = chosen;
       setPrompts(chosen);
       setPromptIdx(0);
@@ -407,7 +410,6 @@ function LivenessCheck({ onCapture, captured, onRetake, fullHeight = false }) {
   const threshold     = currentPrompt ? MOTION_THRESHOLDS[currentPrompt.icon] ?? 0.034 : 0.034;
   const thresholdPct  = Math.min(100, (threshold / 0.055) * 100);
 
-  // Captured state
   if (captured) {
     const url = URL.createObjectURL(captured);
     return (
@@ -714,14 +716,6 @@ function ReviewRow({ label, value }) {
 
 const stepAnim = { initial: { opacity: 0, x: 18 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -18 }, transition: { duration: 0.22 } };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const getToken = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("access_token") ||
-  sessionStorage.getItem("token") || "";
-
-const API_BASE = "/api";
-
 function formatDateDisplay(iso) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
@@ -748,14 +742,11 @@ export default function KycVerification() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`${API_BASE}/kyc/status`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        if (!res.ok) throw new Error("Failed to fetch KYC status");
-        const data = await res.json();
-        setKycStatus(data);
+        const { data } = await api.get("/kyc/status");
+        const kycData = data.data;
+        setKycStatus(kycData);
         const showable = ["not_submitted", "rejected", "resubmit"];
-        setShowForm(showable.includes(data.status));
+        setShowForm(showable.includes(kycData.status));
       } catch {
         setKycStatus({ status: "not_submitted" });
         setShowForm(true);
@@ -788,7 +779,6 @@ export default function KycVerification() {
       if (!form.full_name.trim())    e.full_name     = "Full name is required";
       if (!form.date_of_birth)       e.date_of_birth = "Date of birth is required";
       else {
-        // Additional DOB validation
         const dob = new Date(form.date_of_birth);
         const now = new Date();
         const age = Math.floor((now - dob) / (1000 * 60 * 60 * 24 * 365.25));
@@ -841,34 +831,26 @@ export default function KycVerification() {
       if (form.id_back)  fd.append("id_back",  form.id_back);
       if (form.selfie)   fd.append("selfie",   form.selfie);
 
-      const res = await fetch(`${API_BASE}/kyc/submit`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
+      await api.post("/kyc/submit", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        const msg = data?.message
-          ? data.message
-          : data?.errors
-            ? Object.values(data.errors).flat().join(" ")
-            : "Submission failed. Please try again.";
-        setSubmitError(msg);
-        return;
+      // ✅ FIX: unwrap nested data on re-fetch after submit too
+      try {
+        const { data: statusRes } = await api.get("/kyc/status");
+        setKycStatus(statusRes.data);
+      } catch {
+        setKycStatus({ status: "pending", submission_date: new Date().toISOString() });
       }
-
-      const statusRes = await fetch(`${API_BASE}/kyc/status`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const statusData = statusRes.ok
-        ? await statusRes.json()
-        : { status: "pending", submission_date: new Date().toISOString() };
-      setKycStatus(statusData);
       setShowForm(false);
-    } catch {
-      setSubmitError("Network error. Please check your connection and try again.");
+    } catch (err) {
+      const resData = err.response?.data;
+      const msg = resData?.message
+        ? resData.message
+        : resData?.errors
+          ? Object.values(resData.errors).flat().join(" ")
+          : "Submission failed. Please try again.";
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -883,7 +865,7 @@ export default function KycVerification() {
     );
   }
 
-  const StepContent = (
+  const renderStepContent = () => (
     <AnimatePresence mode="wait">
 
       {step === 0 && (
@@ -1055,7 +1037,7 @@ export default function KycVerification() {
   ];
   const meta = stepMeta[step];
 
-  const PrimaryBtn = ({ mobile }) => step < STEPS.length - 1
+  const renderPrimaryBtn = (mobile) => step < STEPS.length - 1
     ? (
       <button type="button" onClick={nextStep}
         className={`${mobile ? (step > 0 ? "flex-1" : "w-full") : ""} flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white font-bold transition-all active:scale-95 shadow-sm touch-manipulation ${mobile ? "text-base py-4 rounded-2xl" : "text-sm py-3.5 px-6 rounded-xl"}`}>
@@ -1124,7 +1106,7 @@ export default function KycVerification() {
                     <p className="text-stone-400 text-sm mt-0.5">{meta.subtitle}</p>
                   </motion.div>
                 </AnimatePresence>
-                {StepContent}
+                {renderStepContent()}
               </div>
             </div>
 
@@ -1138,7 +1120,7 @@ export default function KycVerification() {
                     <ChevronLeft size={16} /> Back
                   </button>
                 )}
-                <PrimaryBtn mobile={true} />
+                {renderPrimaryBtn(true)}
               </div>
             </div>
           </div>
@@ -1208,7 +1190,7 @@ export default function KycVerification() {
                     <p className="text-stone-400 text-xs mt-0.5">{meta.subtitle}</p>
                   </div>
                 </div>
-                {StepContent}
+                {renderStepContent()}
                 <div className="flex items-center justify-between mt-6 pt-5 border-t border-stone-100">
                   {step > 0
                     ? <button type="button" onClick={prevStep} disabled={submitting}
@@ -1216,7 +1198,7 @@ export default function KycVerification() {
                         <ChevronLeft size={16} /> Back
                       </button>
                     : <div />}
-                  <PrimaryBtn mobile={false} />
+                  {renderPrimaryBtn(false)}
                 </div>
               </motion.div>
             )}
