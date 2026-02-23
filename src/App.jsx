@@ -34,7 +34,6 @@ import Wallet from "./pages/Wallet/Wallet";
 import Withdraw from "./pages/Portfolio/Withdraw";
 import Lands from "./pages/Lands/LandList";
 import NotificationsPage from "./pages/NotificationsPage";
-import KycVerification from "./pages/Auth/KycVerification";
 import ReferralDashboard from './pages/Auth/ReferralDashboard';
 
 // Admin Pages
@@ -119,14 +118,6 @@ function AnimatedRoutes() {
                 element={
                   <ProtectedRoute>
                     <NotificationsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/kyc"
-                element={
-                  <ProtectedRoute>
-                    <KycVerification />
                   </ProtectedRoute>
                 }
               />
